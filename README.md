@@ -44,6 +44,22 @@ npm install
 npm run dev
 ```
 
+### Database Setup
+
+```bash
+# Generate migrations (if schema changed)
+npm run db:generate
+
+# Apply migrations
+npm run db:migrate
+
+# Seed the database with initial data
+npm run db:seed
+
+# Explore the database with Drizzle Studio
+npm run db:studio
+```
+
 ## Deployment
 
 Kanora can be deployed using Docker:
@@ -52,6 +68,31 @@ Kanora can be deployed using Docker:
 # Build and start the containers
 docker compose up -d
 ```
+
+## Nx Workspace
+
+This project is built using [Nx](https://nx.dev), a smart, fast and extensible build system.
+
+### Run tasks
+
+To run tasks with Nx use:
+
+```sh
+npx nx <target> <project-name>
+```
+
+For example:
+
+```sh
+npx nx build api
+```
+
+### Available Commands
+
+- `npm run dev`: Start the development server
+- `npm run build`: Build all projects
+- `npm run test`: Run tests
+- `npm run lint`: Run linting
 
 ## License
 
