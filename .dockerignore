@@ -11,13 +11,16 @@ yarn-debug.log
 yarn-error.log
 
 # Builds
-dist
+# We need dist/apps/api for our Docker build
+dist/apps/web
+dist/apps/mobile
+dist/apps/web-e2e
+dist/apps/api-e2e
 tmp
 /out-tsc
 .nx
 
 # Docker-related files
-Dockerfile
 docker-compose.yml
 .dockerignore
 
