@@ -62,11 +62,54 @@ npm run db:studio
 
 ## Deployment
 
-Kanora can be deployed using Docker:
+### Docker Deployment (Recommended)
+
+Kanora can be easily deployed using Docker:
 
 ```bash
+# Copy the environment file example
+cp apps/api/src/env.example .env
+
+# Edit the environment file with your settings
+nano .env
+
 # Build and start the containers
 docker compose up -d
+```
+
+For detailed deployment instructions, see [DEPLOYMENT.md](DEPLOYMENT.md).
+
+### Using Make Commands
+
+For convenience, you can use the provided Makefile for common operations:
+
+```bash
+# Build the Docker images
+make build
+
+# Start the containers
+make up
+
+# Show container logs
+make logs
+
+# Stop the containers
+make down
+
+# Show all available commands
+make help
+```
+
+### Manual Deployment
+
+For manual deployment without Docker:
+
+```bash
+# Build the production version
+npm run build
+
+# Start the server
+node dist/apps/api/main.js
 ```
 
 ## Nx Workspace
