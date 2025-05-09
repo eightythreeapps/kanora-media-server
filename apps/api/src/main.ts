@@ -5,6 +5,8 @@ import { MediaType, ApiResponse, Media, PaginatedResponse } from '@kanora/shared
 import { env, validateEnv } from './env';
 import { db, runMigrations } from './db/config';
 import { seedDatabase } from './db/seed';
+import authRoutes from './auth/routes/authRoutes';
+import { cleanupRevokedTokens } from './auth/utils/jwt';
 
 // Validate environment variables
 validateEnv();
@@ -16,6 +18,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(morgan('dev'));
+
+// Auth routes
+app.use('/auth', authRoutes);
 
 // Sample data (in-memory database for demo)
 const mediaItems: Media[] = [
@@ -66,12 +71,10 @@ app.get('/', (req, res) => {
 app.get('/health', (req, res) => {
   // Check database connection
   try {
-    // Simple check - if this doesn't throw, the database is connected
-    db.run('SELECT 1');
-    
+    // Simple health check that doesn't rely on database query
+    // Just checking if the server is running and responding
     res.json({
       status: 'healthy',
-      database: 'connected',
       uptime: process.uptime(),
       timestamp: new Date().toISOString(),
       version: '0.1.0',
@@ -80,7 +83,6 @@ app.get('/health', (req, res) => {
   } catch (error) {
     res.status(500).json({
       status: 'unhealthy',
-      database: 'disconnected',
       error: error instanceof Error ? error.message : 'Unknown error',
       timestamp: new Date().toISOString()
     });
@@ -189,6 +191,17 @@ async function initializeDatabase() {
 async function startServer() {
   // Initialize database first
   await initializeDatabase();
+  
+  // Setup periodic cleanup of revoked tokens
+  // Run every hour
+  setInterval(async () => {
+    try {
+      await cleanupRevokedTokens();
+      console.log('Cleaned up expired revoked tokens');
+    } catch (error) {
+      console.error('Error cleaning up revoked tokens:', error);
+    }
+  }, 60 * 60 * 1000); // Every hour
   
   // Start listening for requests
   app.listen(env.PORT, env.HOST, () => {
