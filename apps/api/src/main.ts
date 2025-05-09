@@ -62,6 +62,31 @@ app.get('/', (req, res) => {
   });
 });
 
+// Health check endpoint for monitoring and Docker health checks
+app.get('/health', (req, res) => {
+  // Check database connection
+  try {
+    // Simple check - if this doesn't throw, the database is connected
+    db.run('SELECT 1');
+    
+    res.json({
+      status: 'healthy',
+      database: 'connected',
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString(),
+      version: '0.1.0',
+      environment: env.NODE_ENV
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'unhealthy',
+      database: 'disconnected',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // Get all media
 app.get('/api/media', (req, res) => {
   const response: ApiResponse<Media[]> = {
