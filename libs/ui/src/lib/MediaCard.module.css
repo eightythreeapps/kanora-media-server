@@ -1,0 +1,70 @@
+.mediaCard {
+  width: 100%;
+  max-width: 280px;
+  height: 100%;
+}
+
+.thumbnailContainer {
+  position: relative;
+  width: 100%;
+  height: 160px;
+  overflow: hidden;
+  background-color: #f0f0f0;
+}
+
+.thumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.mediaCard:hover .thumbnail {
+  transform: scale(1.05);
+}
+
+.fallbackThumbnail {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #e0e0e0;
+}
+
+.mediaIcon {
+  font-size: 3rem;
+}
+
+.mediaInfo {
+  padding: 12px;
+}
+
+.mediaTitle {
+  margin: 0 0 8px 0;
+  font-size: 1rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mediaMetadata {
+  display: flex;
+  font-size: 0.875rem;
+  color: #666;
+}
+
+.mediaType {
+  text-transform: capitalize;
+  margin-right: 8px;
+}
+
+.mediaType::after {
+  content: '•';
+  margin-left: 8px;
+}
+
+.mediaDuration {
+  font-weight: 500;
+} 
