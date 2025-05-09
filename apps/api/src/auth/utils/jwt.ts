@@ -33,7 +33,7 @@ export function generateAccessToken(userId: string, email: string, role: string)
   };
 
   const options: SignOptions = {
-    expiresIn: env.JWT_ACCESS_EXPIRES_IN
+    expiresIn: env.JWT_ACCESS_EXPIRES_IN as jwt.SignOptions['expiresIn']
   };
 
   return jwt.sign(payload, env.JWT_SECRET, options);
@@ -52,7 +52,7 @@ export function generateRefreshToken(userId: string, email: string, role: string
   };
 
   const options: SignOptions = {
-    expiresIn: env.JWT_REFRESH_EXPIRES_IN
+    expiresIn: env.JWT_REFRESH_EXPIRES_IN as jwt.SignOptions['expiresIn']
   };
 
   return jwt.sign(payload, env.JWT_REFRESH_SECRET, options);

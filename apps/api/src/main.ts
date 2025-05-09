@@ -6,6 +6,7 @@ import { env, validateEnv } from './env';
 import { db, runMigrations } from './db/config';
 import { seedDatabase } from './db/seed';
 import authRoutes from './auth/routes/authRoutes';
+import userRoutes from './users/routes/userRoutes';
 import { cleanupRevokedTokens } from './auth/utils/jwt';
 
 // Validate environment variables
@@ -21,6 +22,9 @@ app.use(morgan('dev'));
 
 // Auth routes
 app.use('/auth', authRoutes);
+
+// User management routes
+app.use('/api', userRoutes);
 
 // Sample data (in-memory database for demo)
 const mediaItems: Media[] = [
