@@ -1,16 +1,8 @@
-import { Request, Response, NextFunction } from 'express';
-import { authenticate, requireRole, requireAdmin } from '../middleware/authMiddleware';
-import { db } from '../../db/config';
-import { users } from '../../db/schema/users';
-import * as jwtUtils from '../utils/jwt';
-import { eq } from 'drizzle-orm';
-
-// Mock the eq function
+// Mock dependencies before importing the modules
 jest.mock('drizzle-orm', () => ({
   eq: jest.fn(),
 }));
 
-// Mock dependencies
 jest.mock('../../db/config', () => {
   const mockDb = {
     select: jest.fn().mockReturnThis(),
@@ -32,6 +24,18 @@ jest.mock('../utils/jwt', () => ({
   verifyAccessToken: jest.fn(),
   isTokenRevoked: jest.fn(),
 }));
+
+jest.mock('../../db/schema/users', () => ({
+  users: {}
+}));
+
+// Import dependencies after mocking
+import { Request, Response, NextFunction } from 'express';
+import { authenticate, requireRole, requireAdmin } from '../middleware/authMiddleware';
+import { db } from '../../db/config';
+import { users } from '../../db/schema/users';
+import * as jwtUtils from '../utils/jwt';
+import { eq } from 'drizzle-orm';
 
 // Mock request, response, and next function
 const mockRequest = (headers = {}, user = null) => {
@@ -289,15 +293,45 @@ describe('Auth Middleware', () => {
       const req = mockRequest({}, { id: 'user123', email: 'test@example.com', role: 'admin' });
       const res = mockResponse();
 
-      // Mock the requireRole function
-      const mockRequireRole = jest.fn().mockImplementation(() => mockNext());
-      jest.spyOn(require('../middleware/authMiddleware'), 'requireRole').mockReturnValue(mockRequireRole);
+      // Act
+      requireAdmin(req, res, mockNext);
+
+      // Assert - requireAdmin should call next when user has admin role
+      expect(mockNext).toHaveBeenCalled();
+    });
+
+    it('should return 401 if user is not authenticated', () => {
+      // Arrange
+      const req = mockRequest();
+      const res = mockResponse();
 
       // Act
       requireAdmin(req, res, mockNext);
 
       // Assert
-      expect(mockRequireRole).toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        success: false,
+        error: 'Authentication required',
+      }));
+      expect(mockNext).not.toHaveBeenCalled();
+    });
+
+    it('should return 403 if user is not an admin', () => {
+      // Arrange
+      const req = mockRequest({}, { id: 'user123', email: 'test@example.com', role: 'user' });
+      const res = mockResponse();
+
+      // Act
+      requireAdmin(req, res, mockNext);
+
+      // Assert
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        success: false,
+        error: 'Insufficient permissions',
+      }));
+      expect(mockNext).not.toHaveBeenCalled();
     });
   });
 }); 
