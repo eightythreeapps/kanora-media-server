@@ -3,16 +3,29 @@ import { authenticate, requireRole, requireAdmin } from '../middleware/authMiddl
 import { db } from '../../db/config';
 import { users } from '../../db/schema/users';
 import * as jwtUtils from '../utils/jwt';
+import { eq } from 'drizzle-orm';
+
+// Mock the eq function
+jest.mock('drizzle-orm', () => ({
+  eq: jest.fn(),
+}));
 
 // Mock dependencies
-jest.mock('../../db/config', () => ({
-  db: {
+jest.mock('../../db/config', () => {
+  const mockDb = {
     select: jest.fn().mockReturnThis(),
     from: jest.fn().mockReturnThis(),
     where: jest.fn().mockReturnThis(),
-    get: jest.fn(),
-  },
-}));
+    get: jest.fn().mockResolvedValue(null),
+  };
+  
+  // Make all chainable methods properly chainable
+  mockDb.select.mockImplementation(() => mockDb);
+  mockDb.from.mockImplementation(() => mockDb);
+  mockDb.where.mockImplementation(() => mockDb);
+  
+  return { db: mockDb };
+});
 
 jest.mock('../utils/jwt', () => ({
   extractTokenFromHeader: jest.fn(),
@@ -67,7 +80,7 @@ describe('Auth Middleware', () => {
       (jwtUtils.extractTokenFromHeader as jest.Mock).mockReturnValue('valid-token');
       (jwtUtils.verifyAccessToken as jest.Mock).mockReturnValue(decodedToken);
       (jwtUtils.isTokenRevoked as jest.Mock).mockResolvedValue(false);
-      (db.select().from().where().get as jest.Mock).mockResolvedValue(mockUser);
+      (db.get as jest.Mock).mockResolvedValue(mockUser);
 
       // Act
       await authenticate(req, res, mockNext);
@@ -167,7 +180,7 @@ describe('Auth Middleware', () => {
       (jwtUtils.extractTokenFromHeader as jest.Mock).mockReturnValue('valid-token');
       (jwtUtils.verifyAccessToken as jest.Mock).mockReturnValue(decodedToken);
       (jwtUtils.isTokenRevoked as jest.Mock).mockResolvedValue(false);
-      (db.select().from().where().get as jest.Mock).mockResolvedValue(null);
+      (db.get as jest.Mock).mockResolvedValue(null);
 
       // Act
       await authenticate(req, res, mockNext);
@@ -204,7 +217,7 @@ describe('Auth Middleware', () => {
       (jwtUtils.extractTokenFromHeader as jest.Mock).mockReturnValue('valid-token');
       (jwtUtils.verifyAccessToken as jest.Mock).mockReturnValue(decodedToken);
       (jwtUtils.isTokenRevoked as jest.Mock).mockResolvedValue(false);
-      (db.select().from().where().get as jest.Mock).mockResolvedValue(mockUser);
+      (db.get as jest.Mock).mockResolvedValue(mockUser);
 
       // Act
       await authenticate(req, res, mockNext);

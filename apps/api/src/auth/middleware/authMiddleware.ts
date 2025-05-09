@@ -5,16 +5,14 @@ import { db } from '../../db/config';
 import { users } from '../../db/schema/users';
 import { eq } from 'drizzle-orm';
 
-// Extend Express Request to include user information
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
-        id: string;
-        email: string;
-        role: string;
-      };
-    }
+// Extend Express Request using module augmentation instead of namespace
+declare module 'express' {
+  interface Request {
+    user?: {
+      id: string;
+      email: string;
+      role: string;
+    };
   }
 }
 
