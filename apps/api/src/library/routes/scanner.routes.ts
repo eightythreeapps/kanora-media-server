@@ -17,4 +17,4 @@ router.get('/scan/status/:id', authenticate, getScanStatus);
 router.post('/inbox/watch/start', authenticate, startInboxWatcher);
 router.post('/inbox/watch/stop', authenticate, stopInboxWatcher);
 
-export default router; 
+export default router;

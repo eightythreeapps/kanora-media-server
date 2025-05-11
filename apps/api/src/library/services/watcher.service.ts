@@ -23,7 +23,7 @@ export class FileWatcherService {
     try {
       // Get inbox path from env
       const inboxPath = env.MUSIC_INBOX_PATH;
-      
+
       // Create a new scan job for auto-import
       const [scanJob] = await db
         .insert(scanJobs)
@@ -33,9 +33,9 @@ export class FileWatcherService {
           startedAt: new Date().toISOString(),
         })
         .returning();
-      
+
       this.activeScanId = scanJob.id;
-      
+
       // Configure and start the watcher
       this.watcher = chokidar.watch(inboxPath, {
         ignored: /(^|[/\\])\../, // Ignore dot files
@@ -64,16 +64,16 @@ export class FileWatcherService {
     if (this.watcher) {
       await this.watcher.close();
       this.watcher = null;
-      
+
       // Clear any pending files
       this.pendingFiles.clear();
-      
+
       // Clear debounce timer
       if (this.debounceTimer) {
         clearTimeout(this.debounceTimer);
         this.debounceTimer = null;
       }
-      
+
       // Mark scan job as completed
       if (this.activeScanId) {
         await db
@@ -83,10 +83,10 @@ export class FileWatcherService {
             completedAt: new Date().toISOString(),
           })
           .where(eq(scanJobs.id, this.activeScanId));
-        
+
         this.activeScanId = null;
       }
-      
+
       console.log('Stopped watching for new music files');
     }
   }
@@ -99,12 +99,12 @@ export class FileWatcherService {
     if (this.isAudioFile(filePath)) {
       // Add to pending files
       this.pendingFiles.add(filePath);
-      
+
       // Debounce processing to avoid rapid-fire events
       if (this.debounceTimer) {
         clearTimeout(this.debounceTimer);
       }
-      
+
       this.debounceTimer = setTimeout(() => {
         this.processPendingFiles();
       }, 3000); // 3 second debounce
@@ -116,7 +116,7 @@ export class FileWatcherService {
    */
   private async processPendingFiles(): Promise<void> {
     if (this.pendingFiles.size === 0) return;
-    
+
     // If we don't have an active scan ID, create one
     if (!this.activeScanId) {
       const [scanJob] = await db
@@ -127,19 +127,19 @@ export class FileWatcherService {
           startedAt: new Date().toISOString(),
         })
         .returning();
-      
+
       this.activeScanId = scanJob.id;
     }
-    
+
     // Queue each file for import
     const scanId = this.activeScanId;
     const filesToProcess = Array.from(this.pendingFiles);
-    
+
     for (const filePath of filesToProcess) {
       await queueService.queueFileImport(scanId, filePath);
       this.pendingFiles.delete(filePath);
     }
-    
+
     console.log(`Queued ${filesToProcess.length} files for import`);
   }
 
@@ -153,4 +153,4 @@ export class FileWatcherService {
 }
 
 // Export singleton instance
-export const fileWatcherService = new FileWatcherService(); 
+export const fileWatcherService = new FileWatcherService();

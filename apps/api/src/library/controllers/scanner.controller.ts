@@ -11,15 +11,19 @@ import * as fs from 'fs';
 /**
  * Initiate a manual scan of the music library
  */
-export const startLibraryScan = async (req: Request, res: Response): Promise<void> => {
+export const startLibraryScan = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   try {
     const { paths } = req.body;
-    
+
     // Default to the music library path if no paths provided
-    const scanPaths = paths && Array.isArray(paths) && paths.length > 0
-      ? paths
-      : [env.MUSIC_LIBRARY_PATH];
-    
+    const scanPaths =
+      paths && Array.isArray(paths) && paths.length > 0
+        ? paths
+        : [env.MUSIC_LIBRARY_PATH];
+
     // Validate paths
     for (const p of scanPaths) {
       try {
@@ -32,10 +36,10 @@ export const startLibraryScan = async (req: Request, res: Response): Promise<voi
         return;
       }
     }
-    
+
     // Queue the scan job
     const scanId = await queueService.queueLibraryScan(scanPaths);
-    
+
     res.status(202).json({
       success: true,
       message: 'Library scan initiated',
@@ -45,7 +49,7 @@ export const startLibraryScan = async (req: Request, res: Response): Promise<voi
     });
   } catch (error) {
     console.error('Error starting library scan:', error);
-    
+
     res.status(500).json({
       success: false,
       message: 'Failed to initiate library scan',
@@ -57,15 +61,18 @@ export const startLibraryScan = async (req: Request, res: Response): Promise<voi
 /**
  * Get the status of a library scan
  */
-export const getScanStatus = async (req: Request, res: Response): Promise<void> => {
+export const getScanStatus = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   try {
     const { id } = req.params;
-    
+
     // Find the scan job
     const scanJob = await db.query.scanJobs.findFirst({
       where: eq(scanJobs.id, id),
     });
-    
+
     if (!scanJob) {
       res.status(404).json({
         success: false,
@@ -73,7 +80,7 @@ export const getScanStatus = async (req: Request, res: Response): Promise<void> 
       });
       return;
     }
-    
+
     // Return the scan status
     res.status(200).json({
       success: true,
@@ -91,7 +98,7 @@ export const getScanStatus = async (req: Request, res: Response): Promise<void> 
     });
   } catch (error) {
     console.error('Error getting scan status:', error);
-    
+
     res.status(500).json({
       success: false,
       message: 'Failed to get scan status',
@@ -103,17 +110,20 @@ export const getScanStatus = async (req: Request, res: Response): Promise<void> 
 /**
  * Start watching the music inbox directory
  */
-export const startInboxWatcher = async (_req: Request, res: Response): Promise<void> => {
+export const startInboxWatcher = async (
+  _req: Request,
+  res: Response,
+): Promise<void> => {
   try {
     await fileWatcherService.startWatching();
-    
+
     res.status(200).json({
       success: true,
       message: `Started watching ${env.MUSIC_INBOX_PATH} for new music files`,
     });
   } catch (error) {
     console.error('Error starting inbox watcher:', error);
-    
+
     res.status(500).json({
       success: false,
       message: 'Failed to start inbox watcher',
@@ -125,21 +135,24 @@ export const startInboxWatcher = async (_req: Request, res: Response): Promise<v
 /**
  * Stop watching the music inbox directory
  */
-export const stopInboxWatcher = async (_req: Request, res: Response): Promise<void> => {
+export const stopInboxWatcher = async (
+  _req: Request,
+  res: Response,
+): Promise<void> => {
   try {
     await fileWatcherService.stopWatching();
-    
+
     res.status(200).json({
       success: true,
       message: 'Stopped watching for new music files',
     });
   } catch (error) {
     console.error('Error stopping inbox watcher:', error);
-    
+
     res.status(500).json({
       success: false,
       message: 'Failed to stop inbox watcher',
       error: error instanceof Error ? error.message : 'Unknown error',
     });
   }
-}; 
+};

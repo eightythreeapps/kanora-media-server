@@ -51,18 +51,17 @@ export const env: Env = {
 
 // Function to validate required environment variables
 export function validateEnv(): void {
-  const requiredVars = [
-    'JWT_SECRET',
-    'JWT_REFRESH_SECRET',
-  ];
+  const requiredVars = ['JWT_SECRET', 'JWT_REFRESH_SECRET'];
 
-  const missingVars = requiredVars.filter(varName => !process.env[varName]);
+  const missingVars = requiredVars.filter((varName) => !process.env[varName]);
 
   if (missingVars.length > 0) {
-    console.warn(`Missing required environment variables: ${missingVars.join(', ')}`);
-    
+    console.warn(
+      `Missing required environment variables: ${missingVars.join(', ')}`,
+    );
+
     if (env.NODE_ENV === 'production') {
       throw new Error('Missing required environment variables for production.');
     }
   }
-} 
+}

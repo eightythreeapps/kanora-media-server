@@ -23,4 +23,4 @@ router.get('/albums/:id', authenticate, getAlbumById);
 router.get('/tracks', authenticate, getAllTracks);
 router.get('/tracks/:id', authenticate, getTrackById);
 
-export default router; 
+export default router;

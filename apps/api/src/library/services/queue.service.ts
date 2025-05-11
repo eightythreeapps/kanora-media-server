@@ -34,7 +34,10 @@ const connectionOptions = {
     host: env.REDIS_HOST || 'localhost',
     port: env.REDIS_PORT ? parseInt(env.REDIS_PORT) : 6379,
     // If we're in development environment, use inmemory storage instead of redis
-    ...(env.NODE_ENV === 'development' && { enableOfflineQueue: true, lazyConnect: true }),
+    ...(env.NODE_ENV === 'development' && {
+      enableOfflineQueue: true,
+      lazyConnect: true,
+    }),
   },
 };
 
@@ -46,7 +49,7 @@ export class QueueService {
   constructor() {
     // Initialize the queue
     this.queue = new Queue(QUEUE_NAME, connectionOptions);
-    
+
     // Initialize the scanner service
     this.scannerService = new LibraryScannerService();
 
@@ -56,10 +59,10 @@ export class QueueService {
 
   private initWorkers() {
     // Create worker for processing jobs
-    const concurrency = env.QUEUE_CONCURRENCY 
-      ? parseInt(env.QUEUE_CONCURRENCY) 
+    const concurrency = env.QUEUE_CONCURRENCY
+      ? parseInt(env.QUEUE_CONCURRENCY)
       : DEFAULT_CONCURRENCY;
-    
+
     const worker = new Worker(
       QUEUE_NAME,
       async (job: Job) => {
@@ -68,7 +71,7 @@ export class QueueService {
       {
         ...connectionOptions,
         concurrency,
-      }
+      },
     );
 
     worker.on('completed', (job) => {
@@ -77,7 +80,7 @@ export class QueueService {
 
     worker.on('failed', (job, err) => {
       console.error(`Job ${job?.id} failed with error: ${err.message}`);
-      
+
       // Update job status in database if it's a scan job
       if (job?.data?.scanId) {
         this.updateScanJobStatus(job.data.scanId, ScanJobStatus.FAILED);
@@ -116,10 +119,10 @@ export class QueueService {
       await this.updateScanJobStatus(scanId, ScanJobStatus.COMPLETED);
     } catch (error) {
       console.error(`Error processing scan job ${scanId}:`, error);
-      
+
       // Update job status to failed
       await this.updateScanJobStatus(scanId, ScanJobStatus.FAILED);
-      
+
       // Rethrow to trigger the failed event
       throw error;
     }
@@ -133,17 +136,19 @@ export class QueueService {
       await this.scannerService.importFile(scanId, filePath);
     } catch (error) {
       console.error(`Error importing file ${filePath}:`, error);
-      
+
       // Increment error count in scan job
       await this.incrementScanJobErrorCount(scanId);
-      
+
       // Rethrow to trigger the failed event
       throw error;
     }
   }
 
   // Queue a library scan job
-  async queueLibraryScan(paths: string[] = [path.join(os.homedir(), 'Music')]): Promise<string> {
+  async queueLibraryScan(
+    paths: string[] = [path.join(os.homedir(), 'Music')],
+  ): Promise<string> {
     // Create a new scan job in the database
     const [scanJob] = await db
       .insert(scanJobs)
@@ -164,7 +169,7 @@ export class QueueService {
           type: 'exponential',
           delay: 1000,
         },
-      }
+      },
     );
 
     return scanJob.id;
@@ -181,15 +186,19 @@ export class QueueService {
           type: 'exponential',
           delay: 1000,
         },
-      }
+      },
     );
   }
 
   // Helper method to update scan job status
-  private async updateScanJobStatus(scanId: string, status: ScanJobStatus): Promise<void> {
-    const completedAt = status === ScanJobStatus.COMPLETED || status === ScanJobStatus.FAILED
-      ? new Date().toISOString()
-      : undefined;
+  private async updateScanJobStatus(
+    scanId: string,
+    status: ScanJobStatus,
+  ): Promise<void> {
+    const completedAt =
+      status === ScanJobStatus.COMPLETED || status === ScanJobStatus.FAILED
+        ? new Date().toISOString()
+        : undefined;
 
     await db
       .update(scanJobs)
@@ -220,10 +229,10 @@ export class QueueService {
 
   // Close the queue and workers
   async close(): Promise<void> {
-    await Promise.all(this.workers.map(worker => worker.close()));
+    await Promise.all(this.workers.map((worker) => worker.close()));
     await this.queue.close();
   }
 }
 
 // Export a singleton instance
-export const queueService = new QueueService(); 
+export const queueService = new QueueService();

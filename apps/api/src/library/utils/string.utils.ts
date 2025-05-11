@@ -5,7 +5,7 @@
 export function generateSortName(name: string): string {
   // Convert to lowercase
   let sortName = name.toLowerCase();
-  
+
   // Remove common prefixes
   const prefixes = ['the ', 'a ', 'an '];
   for (const prefix of prefixes) {
@@ -14,6 +14,6 @@ export function generateSortName(name: string): string {
       break;
     }
   }
-  
+
   return sortName;
-} 
+}
