@@ -10,7 +10,10 @@
     "db:generate": "drizzle-kit generate --config=./drizzle.config.js",
     "db:migrate": "node apps/api/src/db/migrate.js",
     "db:studio": "drizzle-kit studio --config=./drizzle.config.js",
-    "db:seed": "node apps/api/src/db/seed.js"
+    "db:seed": "node apps/api/src/db/seed.js",
+    "prepare": "husky",
+    "format": "nx format:write",
+    "format:check": "nx format:check"
   },
   "private": true,
   "dependencies": {
@@ -84,9 +87,11 @@
     "eslint-plugin-react": "7.35.0",
     "eslint-plugin-react-hooks": "5.0.0",
     "expo": "^53.0.8",
+    "husky": "^9.1.7",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
     "jest-expo": "~53.0.5",
+    "lint-staged": "^15.5.2",
     "nx": "21.0.2",
     "nx-cloud": "18.0.0",
     "prettier": "^3.1.0",
@@ -104,5 +109,8 @@
   },
   "nx": {
     "includedScripts": []
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,json,css,scss,md}": "npx nx format:write --files"
   }
 }

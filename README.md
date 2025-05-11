@@ -137,6 +137,36 @@ npx nx build api
 - `npm run test`: Run tests
 - `npm run lint`: Run linting
 
+## Code Formatting
+
+This project uses NX's formatting tools to maintain consistent code style.
+
+### Automatic Formatting
+
+- Pre-commit hooks automatically format your code when you commit changes
+- CI checks will verify formatting is correct
+
+### Manual Formatting
+
+To format all files in the project:
+
+```bash
+npm run format
+```
+
+To check if files are properly formatted:
+
+```bash
+npm run format:check
+```
+
+### Editor Integration
+
+For the best development experience, configure your editor to format on save:
+
+- **VS Code**: Install the Prettier extension and enable "Format on Save"
+- **JetBrains IDEs**: Enable "Prettier" as the default formatter and "On Save" formatting
+
 ## License
 
 MIT
