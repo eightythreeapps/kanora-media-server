@@ -32,7 +32,7 @@ export default defineConfig({
     reuseExistingServer: true,
     cwd: workspaceRoot,
   },
-  projects: isCI 
+  projects: isCI
     ? [
         // In CI, only use Chromium to reduce dependencies
         {
