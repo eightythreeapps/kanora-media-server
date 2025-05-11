@@ -157,7 +157,7 @@ export class StreamingService {
 
     // Handle client disconnect
     req.on('close', () => {
-      command.kill();
+      command.kill('SIGKILL');
     });
   }
 
