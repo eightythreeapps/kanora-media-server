@@ -21,7 +21,7 @@ export class ApiService {
       const response = await apiClient.get<ApiResponse<Media[]>>('/media');
       return response.data;
     } catch (error) {
-      return this.handleError(error);
+      return this.handleError<Media[]>(error);
     }
   }
 
@@ -30,7 +30,7 @@ export class ApiService {
       const response = await apiClient.get<ApiResponse<Media>>(`/media/${id}`);
       return response.data;
     } catch (error) {
-      return this.handleError(error);
+      return this.handleError<Media>(error);
     }
   }
 
@@ -39,12 +39,12 @@ export class ApiService {
       const response = await apiClient.post<ApiResponse<PaginatedResponse<Media>>>('/media/search', query);
       return response.data;
     } catch (error) {
-      return this.handleError(error);
+      return this.handleError<PaginatedResponse<Media>>(error);
     }
   }
 
   // Error handling
-  private static handleError(error: unknown): ApiResponse<any> {
+  private static handleError<T>(error: unknown): ApiResponse<T> {
     if (axios.isAxiosError(error)) {
       return {
         success: false,
