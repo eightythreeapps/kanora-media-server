@@ -1,9 +1,9 @@
 import axios from 'axios';
-import { 
-  ApiResponse, 
-  Media, 
-  PaginatedResponse, 
-  SearchQuery 
+import {
+  ApiResponse,
+  Media,
+  PaginatedResponse,
+  SearchQuery,
 } from '@kanora/shared-types';
 
 // Create axios instance with base configuration
@@ -34,9 +34,13 @@ export class ApiService {
     }
   }
 
-  static async searchMedia(query: SearchQuery): Promise<ApiResponse<PaginatedResponse<Media>>> {
+  static async searchMedia(
+    query: SearchQuery,
+  ): Promise<ApiResponse<PaginatedResponse<Media>>> {
     try {
-      const response = await apiClient.post<ApiResponse<PaginatedResponse<Media>>>('/media/search', query);
+      const response = await apiClient.post<
+        ApiResponse<PaginatedResponse<Media>>
+      >('/media/search', query);
       return response.data;
     } catch (error) {
       return this.handleError<PaginatedResponse<Media>>(error);
@@ -59,4 +63,4 @@ export class ApiService {
       timestamp: new Date().toISOString(),
     };
   }
-} 
+}
