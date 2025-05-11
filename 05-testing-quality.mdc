@@ -58,12 +58,27 @@ it('should return data', async () => {
 });
 ```
 
+## End-to-End Testing Guidelines
+- **Verify API responses match actual implementations**: Always check API responses against the current implementation, not expected values that may change
+- **Use property-based assertions** instead of exact value matching when appropriate (e.g., `expect(data).toHaveProperty('name')` instead of `expect(data).toEqual({name: 'value'})`)
+- **Port configuration must be consistent**: Ensure test setup files use the same port as the actual service
+- **Test against running services**: E2E tests should run against actual services, not mocks
+- **Maintain environment consistency**: E2E test environments should mirror production as closely as possible
+
+## Configuration Management
+- **Single source of truth**: Define configuration values in a single location
+- **Environment variables**: Use environment variables for configuration that changes between environments
+- **Port management**: Define port numbers in a central configuration file and reference them in both application and test code
+- **Configuration validation**: Validate configuration at startup to catch misconfigurations early
+
 ## Common Testing Pitfalls to Avoid
 1. **Insufficient mocking**: Ensure all external dependencies are properly mocked
 2. **Brittle tests**: Don't test implementation details, focus on behavior
 3. **Inconsistent mocking**: Use centralized mock factories for consistency
 4. **Ignoring error paths**: Always test error conditions and edge cases
 5. **Over-mocking**: Don't mock what you don't need to
+6. **Port conflicts**: Ensure tests use the correct ports that match the application configuration
+7. **Hardcoded expectations**: Avoid hardcoding expected responses that may change as the application evolves
 
 ## Testing Tools
 - Jest for unit and integration tests
@@ -97,3 +112,12 @@ it('should return data', async () => {
 - Update tests when requirements change
 - Clean up or improve flaky tests immediately
 - Test files should follow the same quality standards as production code
+- When API responses change, update both implementation and tests simultaneously
+
+## Pre-Merge Checklist
+- [ ] Unit tests pass and cover all code paths
+- [ ] E2E tests pass and verify critical flows
+- [ ] Test expectations match current implementation
+- [ ] Port configurations are consistent across application and tests
+- [ ] No skipped tests without corresponding issues
+- [ ] Test configuration matches application configuration
