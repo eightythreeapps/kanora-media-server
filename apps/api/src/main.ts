@@ -7,7 +7,10 @@ import { db, runMigrations } from './db/config';
 import { seedDatabase } from './db/seed';
 import authRoutes from './auth/routes/authRoutes';
 import userRoutes from './users/routes/userRoutes';
+import libraryRoutes from './library/routes/library.routes';
+import scannerRoutes from './library/routes/scanner.routes';
 import { cleanupRevokedTokens } from './auth/utils/jwt';
+import { fileWatcherService } from './library/services/watcher.service';
 
 // Validate environment variables
 validateEnv();
@@ -25,6 +28,12 @@ app.use('/auth', authRoutes);
 
 // User management routes
 app.use('/api', userRoutes);
+
+// Library routes
+app.use('/api/library', libraryRoutes);
+
+// Library scanner routes
+app.use('/api/library', scannerRoutes);
 
 // Sample data (in-memory database for demo)
 const mediaItems: Media[] = [
@@ -206,6 +215,14 @@ async function startServer() {
       console.error('Error cleaning up revoked tokens:', error);
     }
   }, 60 * 60 * 1000); // Every hour
+  
+  // Start the file watcher for the music inbox
+  try {
+    await fileWatcherService.startWatching();
+    console.log(`Started watching ${env.MUSIC_INBOX_PATH} for new music files`);
+  } catch (error) {
+    console.error('Error starting file watcher:', error);
+  }
   
   // Start listening for requests
   app.listen(env.PORT, env.HOST, () => {

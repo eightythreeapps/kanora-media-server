@@ -4,6 +4,7 @@ import Database from 'better-sqlite3';
 import * as path from 'path';
 import * as fs from 'fs';
 import { env } from '../env';
+import * as schema from './schema';
 
 // Ensure data directory exists
 const DATA_DIR = env.DB_PATH 
@@ -17,8 +18,8 @@ if (!fs.existsSync(DATA_DIR)) {
 // Create SQLite database connection
 const sqlite = new Database(env.DB_PATH);
 
-// Create Drizzle ORM instance
-export const db = drizzle(sqlite);
+// Create Drizzle ORM instance with schema
+export const db = drizzle(sqlite, { schema });
 
 // Run migrations (if any)
 export const runMigrations = () => {

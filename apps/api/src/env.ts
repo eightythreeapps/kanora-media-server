@@ -27,6 +27,9 @@ export interface Env {
   JWT_REFRESH_EXPIRES_IN: string;
   MUSIC_INBOX_PATH: string;
   MUSIC_LIBRARY_PATH: string;
+  REDIS_HOST?: string;
+  REDIS_PORT?: string;
+  QUEUE_CONCURRENCY?: string;
 }
 
 // Define and export environment object with defaults
@@ -41,6 +44,9 @@ export const env: Env = {
   JWT_REFRESH_EXPIRES_IN: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
   MUSIC_INBOX_PATH: process.env.MUSIC_INBOX_PATH || './data/music/inbox',
   MUSIC_LIBRARY_PATH: process.env.MUSIC_LIBRARY_PATH || './data/music/library',
+  REDIS_HOST: process.env.REDIS_HOST,
+  REDIS_PORT: process.env.REDIS_PORT,
+  QUEUE_CONCURRENCY: process.env.QUEUE_CONCURRENCY,
 };
 
 // Function to validate required environment variables
