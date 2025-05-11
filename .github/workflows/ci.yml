@@ -116,6 +116,12 @@ jobs:
 
       - uses: nrwl/nx-set-shas@v4
 
+      - name: Install Playwright browsers
+        run: npx playwright install chromium
+
+      - name: Install Playwright dependencies
+        run: npx playwright install-deps
+
       - name: Run E2E tests
         run: npx nx affected -t e2e
 
