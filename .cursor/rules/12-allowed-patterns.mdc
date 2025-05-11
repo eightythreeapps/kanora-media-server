@@ -1,0 +1,18 @@
+---
+description: Allowed vs disallowed coding patterns
+globs: ["src/**/*.{ts,tsx}"]
+alwaysApply: false
+---
+✅ **Allowed**
+- `interface Repository { find(id: Id): Promise<T> }`
+- `await asyncFn()`
+- `export const createService = (deps) => {}`
+- `try { … } catch (e) { throw new DomainError(e) }`
+- Pure functions with explicit returns
+
+🚫 **Disallowed**
+- Class hierarchies beyond one level
+- Nested callbacks > 2 levels
+- Implicit global singletons
+- `console.error(e)` in domain layer
+- Functions that mutate outer-scope state

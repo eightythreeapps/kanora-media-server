@@ -1,0 +1,13 @@
+---
+description: TypeScript coding style and conventions
+globs: ["src/**/*.{ts,tsx}"]
+alwaysApply: false
+---
+- Target **ES2022** with `strict: true`.
+- Use **async/await** exclusively—no callbacks or `.then()` chains.
+- Functions must be ≤ 40 logical lines; split otherwise.
+- Functions return data and **do not** mutate hidden globals.
+- Prefer type aliases & interfaces over classes; inheritance depth ≤ 1.
+- Use `enum` only for fixed protocol values; otherwise prefer `const` string unions.
+- Document all public symbols with **TSDoc**.
+- Sort imports: Node built-ins → external → local; each block alphabetised.

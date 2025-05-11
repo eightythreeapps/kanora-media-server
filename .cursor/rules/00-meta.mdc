@@ -1,0 +1,8 @@
+---
+description: Meta rules for maintaining the Kanora Media Application repository
+globs:
+alwaysApply: true
+---
+- Rule files are living documents—update when the architecture evolves.
+- When deviating from a rule, document the rationale in the PR description.
+- CI must pass `eslint`, `prettier`, `tsc --noEmit`, and all unit tests.

@@ -1,0 +1,9 @@
+---
+description: Dependency management guidelines
+globs: ["src/**/*.{ts,tsx}"]
+alwaysApply: false
+---
+- Prefer **constructor injection** of dependencies typed as interfaces or abstract types.
+- Avoid heavyweight DI containers; use explicit factories or slim helpers.
+- Global singletons are forbidden except immutable configuration values.
+- Each module exports a `create*()` factory that wires concrete implementations.

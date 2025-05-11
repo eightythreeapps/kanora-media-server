@@ -1,0 +1,8 @@
+---
+description: Security and privacy guidelines
+globs: ["src/**/*"]
+alwaysApply: false
+---
+- Disable user analytics by default; require explicit opt-in.
+- Never log full filesystem paths to user media; redact sensitive info.
+- Validate and sanitise all external inputs, especially filenames.

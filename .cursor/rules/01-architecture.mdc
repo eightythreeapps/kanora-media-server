@@ -1,0 +1,14 @@
+---
+description: Clean Architecture principles for Kanora
+globs: ["src/**/*.{ts,tsx,js,jsx}"]
+alwaysApply: false
+---
+- Follow Clean Architecture layers:
+  - **Domain**: pure business rules.
+  - **Application / Use-Cases**: orchestrates domain objects via ports.
+  - **Interface Adapters**: controllers, presenters, views.
+  - **Infrastructure / Frameworks**: DB, HTTP, OS specifics.
+- Dependencies flow inward; outer layers depend on inner layers only.
+- Keep bounded contexts (library management, auth, streaming, VR) separate.
+- Expose behaviour via Hexagonal **Ports & Adapters**.
+- Services should be stateless; persist state in DB or filesystem.

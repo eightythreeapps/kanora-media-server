@@ -1,0 +1,8 @@
+---
+description: Documentation and onboarding standards
+globs:
+alwaysApply: false
+---
+- Record architecture decisions in `/docs/adr/NNN-*.md`.
+- Each package’s README must explain its public API and how to run tests.
+- Store diagrams (draw.io SVG) in `/docs/diagrams`.

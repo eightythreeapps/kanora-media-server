@@ -1,0 +1,9 @@
+---
+description: Testing and quality gates
+globs: ["tests/**/*.ts", "src/**/*.{ts,tsx}"]
+alwaysApply: false
+---
+- Maintain **100 % type coverage** using `ts-prune` & `typescript-eslint`.
+- Achieve ≥ 80 % line coverage with Jest & `ts-jest`.
+- Unit-test domain and use-case layers; integration tests for adapters; e2e smoke tests for installers.
+- Use test doubles via interfaces—no monkey-patching.

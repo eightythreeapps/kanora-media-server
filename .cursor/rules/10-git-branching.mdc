@@ -1,0 +1,14 @@
+---
+description: Git workflow and branching strategy
+globs: 
+alwaysApply: false
+---
+- `main` must remain releasable at all times.
+- Name branches with `feat/`, `fix/`, or `chore/` prefixes.
+- Use **Conventional Commits**; changelogs generated with `standard-version`.
+- We follow trunk based branching
+
+## Repo Details
+Repository remote: https://github.com/eightythreeapps/kanora-media-server
+Owner: eightythreeapps
+Project name: Kanora Media Server
