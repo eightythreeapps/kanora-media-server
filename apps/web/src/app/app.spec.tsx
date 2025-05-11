@@ -20,7 +20,7 @@ describe('App', () => {
       </BrowserRouter>
     );
     expect(
-      getAllByText(new RegExp('Welcome web', 'gi')).length > 0
+      getAllByText(new RegExp('Media Library', 'gi')).length > 0
     ).toBeTruthy();
   });
 });
