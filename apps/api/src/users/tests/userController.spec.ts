@@ -1,10 +1,10 @@
 // Mock dependencies before importing the modules
 jest.mock('drizzle-orm', () => ({
-  eq: jest.fn(),
-  and: jest.fn(),
-  desc: jest.fn(),
-  asc: jest.fn(),
-  sql: jest.fn()
+  eq: jest.fn().mockReturnValue('mocked-eq-condition'),
+  and: jest.fn().mockReturnValue('mocked-and-condition'),
+  desc: jest.fn().mockReturnValue('mocked-desc-sort'),
+  asc: jest.fn().mockReturnValue('mocked-asc-sort'),
+  sql: jest.fn().mockReturnValue('mocked-sql-expression')
 }));
 
 jest.mock('drizzle-orm/sqlite-core', () => {
@@ -23,27 +23,69 @@ jest.mock('drizzle-orm/sqlite-core', () => {
   };
 });
 
-jest.mock('../../db/config', () => {
-  // Create a chainable mock for query builders
-  const chainable = {
-    select: jest.fn().mockReturnThis(),
+// Centralized mock factory for database operations
+const createDbMock = () => {
+  // Create chainable mock functions that return the mock object itself
+  const dbMock = {
+    select: jest.fn(),
+    insert: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn()
+  };
+
+  // Setup select chain
+  const selectChain = {
     from: jest.fn().mockReturnThis(),
     where: jest.fn().mockReturnThis(),
+    andWhere: jest.fn().mockReturnThis(),
     orderBy: jest.fn().mockReturnThis(),
     limit: jest.fn().mockReturnThis(),
     offset: jest.fn().mockReturnThis(),
-    get: jest.fn(),
-    insert: jest.fn().mockReturnThis(),
+    get: jest.fn()
+  };
+  dbMock.select.mockReturnValue(selectChain);
+
+  // Setup insert chain
+  const insertChain = {
     values: jest.fn().mockReturnThis(),
     returning: jest.fn().mockReturnThis(),
-    update: jest.fn().mockReturnThis(),
-    set: jest.fn().mockReturnThis(),
-    run: jest.fn(),
-    delete: jest.fn().mockReturnThis(),
-    onConflictDoNothing: jest.fn().mockReturnThis()
+    get: jest.fn()
   };
-  return { db: chainable };
-});
+  dbMock.insert.mockReturnValue(insertChain);
+
+  // Setup update chain
+  const updateChain = {
+    set: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    returning: jest.fn().mockReturnThis(),
+    get: jest.fn()
+  };
+  dbMock.update.mockReturnValue(updateChain);
+
+  // Setup delete chain
+  const deleteChain = {
+    where: jest.fn().mockReturnThis(),
+    returning: jest.fn().mockReturnThis(),
+    execute: jest.fn()
+  };
+  dbMock.delete.mockReturnValue(deleteChain);
+
+  return {
+    dbMock,
+    chains: {
+      select: selectChain,
+      insert: insertChain,
+      update: updateChain,
+      delete: deleteChain
+    }
+  };
+};
+
+// Setup the mock
+const { dbMock, chains } = createDbMock();
+jest.mock('../../db/config', () => ({
+  db: dbMock
+}));
 
 jest.mock('../../auth/utils/password', () => ({
   hashPassword: jest.fn().mockResolvedValue('hashed_password'),
@@ -86,71 +128,25 @@ const mockResponse = () => {
 describe.skip('User Controller', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    
-    // Clear all mock implementations
-    (db.select as jest.Mock).mockReset();
-    (db.insert as jest.Mock).mockReset();
-    (db.update as jest.Mock).mockReset();
   });
-  
-  /**
-   * Helper function to set up DB mocks for a test
-   */
-  const setupDbMocks = (mocks: {
-    selects?: Array<any | null>, // Array of values to return for each select call
-    inserts?: Array<any | null>, // Array of values to return for each insert call
-    updates?: Array<any | null>, // Array of values to return for each update call
-  }) => {
-    const { selects = [], inserts = [], updates = [] } = mocks;
-    
-    // Mock select chain
-    selects.forEach((returnValue) => {
-      (db.select as jest.Mock).mockImplementationOnce(() => ({
-        from: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        andWhere: jest.fn().mockReturnThis(),
-        limit: jest.fn().mockReturnThis(),
-        offset: jest.fn().mockReturnThis(),
-        orderBy: jest.fn().mockReturnThis(),
-        get: jest.fn().mockReturnValue(returnValue)
-      }));
-    });
-    
-    // Mock insert chain
-    inserts.forEach((returnValue) => {
-      (db.insert as jest.Mock).mockImplementationOnce(() => ({
-        values: jest.fn().mockReturnThis(),
-        returning: jest.fn().mockReturnThis(),
-        get: jest.fn().mockReturnValue(returnValue)
-      }));
-    });
-    
-    // Mock update chain
-    updates.forEach((returnValue) => {
-      (db.update as jest.Mock).mockImplementationOnce(() => ({
-        set: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        returning: jest.fn().mockReturnThis(),
-        get: jest.fn().mockReturnValue(returnValue)
-      }));
-    });
-  };
 
   describe('listUsers', () => {
     it('should return paginated users list for admin', async () => {
       // Arrange
       const req = mockRequest({}, { role: 'admin' }, {}, { page: '1', pageSize: '10' });
       const res = mockResponse();
+      
       const mockUsers = [
         { id: 'user1', email: 'user1@example.com', displayName: 'User 1', role: 'user' },
         { id: 'user2', email: 'user2@example.com', displayName: 'User 2', role: 'admin' }
       ];
+      
       const mockCount = { count: 2 };
       
-      // Setup mocks
-      setupDbMocks({
-        selects: [mockCount, mockUsers]
-      });
+      // Setup the mock responses
+      chains.select.get
+        .mockReturnValueOnce(mockCount)      // First select for count
+        .mockReturnValueOnce(mockUsers);     // Second select for users list
       
       // Act
       await listUsers(req, res);
@@ -173,12 +169,12 @@ describe.skip('User Controller', () => {
 
     it('should handle errors', async () => {
       // Arrange
-      const req = mockRequest();
+      const req = mockRequest({}, { role: 'admin' }, {}, {});
       const res = mockResponse();
-      const mockError = new Error('Database error');
       
-      // Setup mock to throw an error
-      (db.select as jest.Mock).mockImplementationOnce(() => {
+      // Force error by making the first select method throw
+      const mockError = new Error('Database error');
+      chains.select.from.mockImplementationOnce(() => {
         throw mockError;
       });
       
@@ -203,6 +199,7 @@ describe.skip('User Controller', () => {
         displayName: 'New User'
       });
       const res = mockResponse();
+      
       const mockNewUser = {
         id: 'newuser123',
         email: 'new@example.com',
@@ -212,14 +209,11 @@ describe.skip('User Controller', () => {
         createdAt: '2023-01-01T00:00:00.000Z'
       };
       
-      (validatePasswordStrength as jest.Mock).mockReturnValue({ isValid: true });
-      (hashPassword as jest.Mock).mockResolvedValue('hashed_password');
+      // Setup mocks
+      chains.select.get.mockReturnValueOnce(null);             // No existing user
+      chains.insert.get.mockReturnValueOnce(mockNewUser);      // Successfully inserted user
       
-      // Setup mocks - no existing user, successful insert
-      setupDbMocks({
-        selects: [null], // No existing user
-        inserts: [mockNewUser] // Successfully inserted user
-      });
+      (validatePasswordStrength as jest.Mock).mockReturnValue({ isValid: true });
       
       // Act
       await createUser(req, res);
@@ -311,17 +305,16 @@ describe.skip('User Controller', () => {
         displayName: 'Existing User'
       });
       const res = mockResponse();
+      
       const existingUser = { 
         id: 'existing123',
         email: 'existing@example.com'
       };
       
-      (validatePasswordStrength as jest.Mock).mockReturnValue({ isValid: true });
-      
       // Setup mocks - existing user found
-      setupDbMocks({
-        selects: [existingUser] // User already exists
-      });
+      chains.select.get.mockReturnValueOnce(existingUser);
+      
+      (validatePasswordStrength as jest.Mock).mockReturnValue({ isValid: true });
       
       // Act
       await createUser(req, res);
@@ -340,6 +333,7 @@ describe.skip('User Controller', () => {
       // Arrange
       const req = mockRequest({}, { role: 'admin' }, { id: 'user123' });
       const res = mockResponse();
+      
       const mockUser = {
         id: 'user123',
         email: 'user@example.com',
@@ -348,9 +342,7 @@ describe.skip('User Controller', () => {
       };
       
       // Setup mocks - user found
-      setupDbMocks({
-        selects: [mockUser]
-      });
+      chains.select.get.mockReturnValueOnce(mockUser);
       
       // Act
       await getUserById(req, res);
@@ -369,9 +361,7 @@ describe.skip('User Controller', () => {
       const res = mockResponse();
       
       // Setup mocks - user not found
-      setupDbMocks({
-        selects: [null]
-      });
+      chains.select.get.mockReturnValueOnce(null);
       
       // Act
       await getUserById(req, res);
@@ -394,12 +384,14 @@ describe.skip('User Controller', () => {
         { id: 'user123' }
       );
       const res = mockResponse();
+      
       const existingUser = {
         id: 'user123',
         email: 'old@example.com',
         displayName: 'Old Name',
         role: 'user'
       };
+      
       const updatedUser = {
         id: 'user123',
         email: 'updated@example.com',
@@ -409,10 +401,11 @@ describe.skip('User Controller', () => {
       };
       
       // Setup mocks
-      setupDbMocks({
-        selects: [existingUser, null], // Existing user found, no email conflict
-        updates: [updatedUser] // Successfully updated user
-      });
+      chains.select.get
+        .mockReturnValueOnce(existingUser)  // First select finds the user
+        .mockReturnValueOnce(null);         // Second select checks if email exists (it doesn't)
+      
+      chains.update.get.mockReturnValueOnce(updatedUser);  // Update returns updated user
       
       // Act
       await updateUser(req, res);
@@ -439,9 +432,7 @@ describe.skip('User Controller', () => {
       const res = mockResponse();
       
       // Setup mocks - user not found
-      setupDbMocks({
-        selects: [null]
-      });
+      chains.select.get.mockReturnValueOnce(null);
       
       // Act
       await updateUser(req, res);
@@ -462,20 +453,22 @@ describe.skip('User Controller', () => {
         { id: 'user123' }
       );
       const res = mockResponse();
+      
       const existingUser = {
         id: 'user123',
         email: 'original@example.com',
         displayName: 'Original Name'
       };
+      
       const conflictingUser = {
         id: 'other123',
         email: 'taken@example.com'
       };
       
       // Setup mocks
-      setupDbMocks({
-        selects: [existingUser, conflictingUser] // User found, but email is taken
-      });
+      chains.select.get
+        .mockReturnValueOnce(existingUser)    // First select finds the user
+        .mockReturnValueOnce(conflictingUser); // Second select finds conflicting email
       
       // Act
       await updateUser(req, res);
@@ -494,11 +487,13 @@ describe.skip('User Controller', () => {
       // Arrange
       const req = mockRequest({}, { role: 'admin' }, { id: 'user123' });
       const res = mockResponse();
+      
       const existingUser = {
         id: 'user123',
         email: 'user@example.com',
         disabled: false
       };
+      
       const updatedUser = {
         id: 'user123',
         email: 'user@example.com',
@@ -506,10 +501,8 @@ describe.skip('User Controller', () => {
       };
       
       // Setup mocks
-      setupDbMocks({
-        selects: [existingUser],
-        updates: [updatedUser]
-      });
+      chains.select.get.mockReturnValueOnce(existingUser);  // User found
+      chains.update.get.mockReturnValueOnce(updatedUser);   // Successfully updated
       
       // Act
       await disableUser(req, res);
@@ -528,9 +521,7 @@ describe.skip('User Controller', () => {
       const res = mockResponse();
       
       // Setup mocks - user not found
-      setupDbMocks({
-        selects: [null]
-      });
+      chains.select.get.mockReturnValueOnce(null);
       
       // Act
       await disableUser(req, res);
@@ -550,6 +541,7 @@ describe.skip('User Controller', () => {
       const userId = 'current123';
       const req = mockRequest({}, { id: userId });
       const res = mockResponse();
+      
       const mockUser = {
         id: userId,
         email: 'current@example.com',
@@ -558,9 +550,7 @@ describe.skip('User Controller', () => {
       };
       
       // Setup mocks - user found
-      setupDbMocks({
-        selects: [mockUser]
-      });
+      chains.select.get.mockReturnValueOnce(mockUser);
       
       // Act
       await getProfile(req, res);
@@ -599,11 +589,13 @@ describe.skip('User Controller', () => {
         { id: userId }
       );
       const res = mockResponse();
+      
       const existingUser = {
         id: userId,
         email: 'current@example.com',
         displayName: 'Current User'
       };
+      
       const updatedUser = {
         id: userId,
         email: 'current@example.com',
@@ -611,10 +603,8 @@ describe.skip('User Controller', () => {
       };
       
       // Setup mocks
-      setupDbMocks({
-        selects: [existingUser],
-        updates: [updatedUser]
-      });
+      chains.select.get.mockReturnValueOnce(existingUser);  // User found
+      chains.update.get.mockReturnValueOnce(updatedUser);   // Successfully updated
       
       // Act
       await updateProfile(req, res);
@@ -638,11 +628,13 @@ describe.skip('User Controller', () => {
         { id: userId }
       );
       const res = mockResponse();
+      
       const existingUser = {
         id: userId,
         email: 'current@example.com',
         passwordHash: 'hashed_old_password'
       };
+      
       const updatedUser = {
         id: userId,
         email: 'current@example.com',
@@ -650,10 +642,8 @@ describe.skip('User Controller', () => {
       };
       
       // Setup mocks
-      setupDbMocks({
-        selects: [existingUser],
-        updates: [updatedUser]
-      });
+      chains.select.get.mockReturnValueOnce(existingUser);  // User found
+      chains.update.get.mockReturnValueOnce(updatedUser);   // Successfully updated
       
       // Mock password verification and hashing
       (verifyPassword as jest.Mock).mockResolvedValue(true);
@@ -683,6 +673,7 @@ describe.skip('User Controller', () => {
         { id: userId }
       );
       const res = mockResponse();
+      
       const existingUser = {
         id: userId,
         email: 'current@example.com',
@@ -690,9 +681,7 @@ describe.skip('User Controller', () => {
       };
       
       // Setup mocks
-      setupDbMocks({
-        selects: [existingUser]
-      });
+      chains.select.get.mockReturnValueOnce(existingUser);  // User found
       
       // Mock password verification (fails)
       (verifyPassword as jest.Mock).mockResolvedValue(false);
