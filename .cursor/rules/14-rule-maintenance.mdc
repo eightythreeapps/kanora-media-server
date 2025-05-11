@@ -1,0 +1,7 @@
+---
+description: Rule maintenance cadence
+globs:
+alwaysApply: false
+---
+- Review and update rules every quarter; archive obsolete ones.
+- Use Cursor’s **Refactor** feature with these rules selected; review AI-generated diffs as you would a junior developer's work.

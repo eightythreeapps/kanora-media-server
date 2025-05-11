@@ -1,0 +1,8 @@
+---
+description: Meta Quest 3 Virtual Listening Room guidelines
+globs: ["vr/**/*.{tsx,ts}"]
+alwaysApply: false
+---
+- Build with **React Three Fiber** and **@react-three/xr**.
+- Restrict three.js objects to the presenter layer; never leak into domain logic.
+- Implement audio spatialisation via Web Audio API; fetch tracks through the `/stream` endpoint.

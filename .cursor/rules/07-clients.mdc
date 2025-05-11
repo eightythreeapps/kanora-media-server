@@ -1,0 +1,9 @@
+---
+description: Cross-platform client rules (web, iOS, Android)
+globs: ["apps/**/*.{tsx,ts,jsx,js}"]
+alwaysApply: false
+---
+- Use a **monorepo** with **Expo React Native** for mobile and **Next.js** for web; share UI via `react-native-web`.
+- Manage state with **Redux Toolkit** or **Zustand**; async thunks handle side effects.
+- Generate strongly-typed API hooks from the OpenAPI spec using **RTK Query**.
+- Keep component files ≤ 300 LOC; split into `.view`, `.styles`, `.test` when necessary.

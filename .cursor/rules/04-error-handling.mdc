@@ -1,0 +1,8 @@
+---
+description: Error handling standards
+globs: ["src/**/*.{ts,tsx}"]
+alwaysApply: false
+---
+- Never swallow errors; propagate with `throw` or a `Result<T, E>` pattern.
+- HTTP handlers translate errors to **RFC 9457 Problem Details** JSON.
+- Use exponential back-off retry for transient I/O failures (e.g. `async-retry`).

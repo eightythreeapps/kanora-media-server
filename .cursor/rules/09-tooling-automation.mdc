@@ -1,0 +1,9 @@
+---
+description: Tooling and automation standards
+globs:
+alwaysApply: false
+---
+- Lint with `eslint` (Airbnb-TypeScript + import/order).
+- Format with `prettier`; enforce via Husky & `lint-staged` on pre-commit.
+- Run unit tests and type-check in pre-push hook.
+- Provide Dockerfile per service; dev containers use VS Code dev-containers images.

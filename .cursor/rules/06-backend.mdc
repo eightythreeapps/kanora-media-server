@@ -1,0 +1,11 @@
+---
+description: Backend server architecture and endpoints
+globs: ["server/**/*.{ts,js}"]
+alwaysApply: false
+---
+- Use **Fastify + TypeScript**; auto-generate an OpenAPI spec.
+- Provide REST endpoints: `/artists`, `/albums`, `/tracks`, `/playlists` (CRUD) and `/stream/:trackId` (supports HTTP Range for audio).
+- Default persistence in **SQLite**; provide adapter for Postgres.
+- Stream audio with `fs.createReadStream` and correct `Content-Type`.
+- Validate DTOs at runtime with **zod**.
+- Directory structure: `/src/domain`, `/src/usecases`, `/src/adapters/http`, `/src/infrastructure`.
