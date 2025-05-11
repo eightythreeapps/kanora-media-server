@@ -1,5 +1,99 @@
 ---
-description:
-globs:
+description: 
+globs: 
 alwaysApply: false
 ---
+# Testing and Quality Standards
+
+## Principles
+- **Test-Driven Development (TDD)** is encouraged but not required
+- All code must have appropriate test coverage before being merged
+- Mock external dependencies appropriately (APIs, databases, etc.)
+- Integration tests should complement unit tests for critical flows
+
+## Test Coverage Requirements
+- **Unit Tests**: 85% minimum coverage for business logic
+- **Integration Tests**: Key API endpoints and flows must be covered
+- **UI Tests**: Critical user flows must have end-to-end tests
+
+## Database Mocking Best Practices
+- Create centralized mock factories for complex ORM operations
+- Test at appropriate levels of abstraction to avoid brittle tests
+- For Drizzle ORM:
+  - Mock all chainable methods thoroughly 
+  - Return proper types from mock functions
+  - Ensure all methods in the chain can be called and return appropriate values
+  - Test for error conditions in addition to happy paths
+
+### Database Mocking Example (Drizzle ORM)
+```typescript
+// Create a centralized mock factory
+const createDbMock = () => {
+  // Define chainable methods and return values
+  const selectChain = {
+    from: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    orderBy: jest.fn().mockReturnThis(),
+    limit: jest.fn().mockReturnThis(),
+    offset: jest.fn().mockReturnThis(),
+    get: jest.fn() // Will be configured in tests
+  };
+  
+  const dbMock = {
+    select: jest.fn().mockReturnValue(selectChain),
+    // Add other operations as needed
+  };
+  
+  return { dbMock, chains: { select: selectChain } };
+};
+
+// Set up mocks in tests
+const { dbMock, chains } = createDbMock();
+jest.mock('../../db/config', () => ({ db: dbMock }));
+
+// Configure mock returns in individual tests
+it('should return data', async () => {
+  chains.select.get.mockReturnValueOnce({ id: '123' });
+  // Continue with test...
+});
+```
+
+## Common Testing Pitfalls to Avoid
+1. **Insufficient mocking**: Ensure all external dependencies are properly mocked
+2. **Brittle tests**: Don't test implementation details, focus on behavior
+3. **Inconsistent mocking**: Use centralized mock factories for consistency
+4. **Ignoring error paths**: Always test error conditions and edge cases
+5. **Over-mocking**: Don't mock what you don't need to
+
+## Testing Tools
+- Jest for unit and integration tests
+- Cypress for end-to-end tests
+- React Testing Library for component tests
+
+## Continuous Integration Requirements
+- All tests must pass before merging to main
+- If PRs contain failing tests, they must be either:
+  - Fixed appropriately
+  - Temporarily skipped with descriptive comments and a linked issue
+  - Never check in permanently skipped tests without explanation
+
+## When to Skip Tests
+- Test skipping should be a rare and temporary measure
+- Always create an issue to track test fixes when skipping tests
+- Document why tests are skipped in both the code and the issue
+- Use `describe.skip()` or `it.skip()` with a clear comment
+
+## Accessibility Testing
+- All user interfaces must pass WCAG 2.1 AA standards
+- Automated accessibility tests are required for all UI components
+
+## Security Testing
+- Sensitive endpoints must have security-focused tests
+- Authentication and authorization flows require thorough testing
+- Test for common security vulnerabilities
+
+## Test Maintenance
+- Tests should be reviewed and maintained alongside code
+- Update tests when requirements change
+- Clean up or improve flaky tests immediately
+- Test files should follow the same quality standards as production code
