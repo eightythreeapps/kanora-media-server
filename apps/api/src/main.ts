@@ -92,7 +92,7 @@ app.get('/', (req, res) => {
   });
 });
 
-// Health check endpoint for monitoring and Docker health checks
+// Health check endpoint for monitoring
 app.get('/health', (req, res) => {
   // Check database connection
   try {
