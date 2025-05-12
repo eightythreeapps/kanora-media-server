@@ -1,11 +1,19 @@
 // Uncomment this line to use CSS modules
 // import styles from './app.module.css';
 import { useEffect, useState } from 'react';
-import { Route, Routes, Link } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import styles from './app.module.css';
 import { Media } from '@kanora/shared-types';
 import { ApiService } from '@kanora/data-access';
 import { Button, MediaCard } from '@kanora/ui';
+import { AuthProvider } from './contexts/AuthContext';
+import { AuthLayout } from './components/auth/AuthLayout';
+import { LoginForm } from './components/auth/LoginForm';
+import { RegisterForm } from './components/auth/RegisterForm';
+import { ForgotPasswordForm } from './components/auth/ForgotPasswordForm';
+import { ResetPasswordForm } from './components/auth/ResetPasswordForm';
+import { Dashboard } from './components/Dashboard';
+import { ProtectedRoute } from './components/ProtectedRoute';
 
 const HomePage = () => {
   const [mediaItems, setMediaItems] = useState<Media[]>([]);
@@ -41,34 +49,27 @@ const HomePage = () => {
   return (
     <div className={styles.container}>
       <h1 className={styles.heading}>Media Library</h1>
-      
+
       {loading && <div className={styles.loading}>Loading media...</div>}
-      
+
       {error && (
         <div className={styles.error}>
           <p>{error}</p>
-          <Button 
-            variant="primary" 
-            onClick={() => window.location.reload()}
-          >
+          <Button variant="primary" onClick={() => window.location.reload()}>
             Retry
           </Button>
         </div>
       )}
-      
+
       {!loading && !error && mediaItems.length === 0 && (
         <div className={styles.emptyState}>
           <p>No media items found</p>
         </div>
       )}
-      
+
       <div className={styles.mediaGrid}>
         {mediaItems.map((media) => (
-          <MediaCard 
-            key={media.id} 
-            media={media}
-            onClick={handleMediaClick}
-          />
+          <MediaCard key={media.id} media={media} onClick={handleMediaClick} />
         ))}
       </div>
     </div>
@@ -78,8 +79,14 @@ const HomePage = () => {
 const AboutPage = () => (
   <div className={styles.container}>
     <h1 className={styles.heading}>About Kanora</h1>
-    <p>Kanora is a locally hosted media server application built with Nx, React, and Expo.</p>
-    <p>It allows you to stream your own media files to various devices on your local network.</p>
+    <p>
+      Kanora is a locally hosted media server application built with Nx, React,
+      and Expo.
+    </p>
+    <p>
+      It allows you to stream your own media files to various devices on your
+      local network.
+    </p>
     <Button variant="outline" onClick={() => window.history.back()}>
       Go Back
     </Button>
@@ -88,26 +95,54 @@ const AboutPage = () => (
 
 export function App() {
   return (
-    <div className={styles.app}>
-      <header className={styles.header}>
-        <div className={styles.logo}>Kanora</div>
-        <nav className={styles.nav}>
-          <Link to="/" className={styles.navLink}>Home</Link>
-          <Link to="/about" className={styles.navLink}>About</Link>
-        </nav>
-      </header>
+    <AuthProvider>
+      <Routes>
+        {/* Public routes */}
+        <Route path="/" element={<Navigate to="/login" replace />} />
 
-      <main className={styles.main}>
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/about" element={<AboutPage />} />
-        </Routes>
-      </main>
+        {/* Auth routes */}
+        <Route
+          path="/login"
+          element={
+            <AuthLayout>
+              <LoginForm />
+            </AuthLayout>
+          }
+        />
+        <Route
+          path="/register"
+          element={
+            <AuthLayout>
+              <RegisterForm />
+            </AuthLayout>
+          }
+        />
+        <Route
+          path="/forgot-password"
+          element={
+            <AuthLayout>
+              <ForgotPasswordForm />
+            </AuthLayout>
+          }
+        />
+        <Route
+          path="/reset-password/:token"
+          element={
+            <AuthLayout>
+              <ResetPasswordForm />
+            </AuthLayout>
+          }
+        />
 
-      <footer className={styles.footer}>
-        <p>&copy; {new Date().getFullYear()} Kanora Media Server</p>
-      </footer>
-    </div>
+        {/* Protected routes */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="/dashboard" element={<Dashboard />} />
+        </Route>
+
+        {/* Catch all - redirect to login */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    </AuthProvider>
   );
 }
 
