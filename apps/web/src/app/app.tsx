@@ -10,6 +10,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { AuthLayout } from './components/auth/AuthLayout';
 import { LoginForm } from './components/auth/LoginForm';
 import { UserAccessDenied } from './components/auth/UserAccessDenied';
+import { SetupForm } from './components/auth/SetupForm';
 import { Dashboard } from './components/Dashboard';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { ProfilePage } from './components/user/ProfilePage';
@@ -107,6 +108,16 @@ export function App() {
           element={
             <AuthLayout>
               <LoginForm />
+            </AuthLayout>
+          }
+        />
+        
+        {/* Setup route */}
+        <Route
+          path="/setup"
+          element={
+            <AuthLayout>
+              <SetupForm />
             </AuthLayout>
           }
         />
