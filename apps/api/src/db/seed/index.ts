@@ -6,10 +6,10 @@ import { createId } from '@paralleldrive/cuid2';
 import * as crypto from 'crypto';
 import { eq } from 'drizzle-orm';
 
-// Function to hash passwords
-function hashPassword(password: string): string {
+// Function to hash PIN
+function hashPin(pin: string): string {
   const salt = crypto.randomBytes(16).toString('hex');
-  const hash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
+  const hash = crypto.pbkdf2Sync(pin, salt, 1000, 64, 'sha512').toString('hex');
   return `${salt}:${hash}`;
 }
 
@@ -38,9 +38,10 @@ export async function seedDatabase() {
     console.log('Creating default admin user...');
     await db.insert(users).values({
       id: createId(),
+      username: 'admin',
       email: 'admin@kanora.local',
       displayName: 'Admin',
-      passwordHash: hashPassword('admin123'), // Change this in production
+      pinHash: hashPin('1234'), // Default PIN - change this in production
       role: UserRole.ADMIN,
       disabled: false,
       createdAt: new Date().toISOString(),

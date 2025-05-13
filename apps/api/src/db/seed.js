@@ -25,10 +25,10 @@ const UserRole = {
   ADMIN: 'admin',
 };
 
-// Function to hash passwords
-function hashPassword(password) {
+// Function to hash PIN
+function hashPin(pin) {
   const salt = crypto.randomBytes(16).toString('hex');
-  const hash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
+  const hash = crypto.pbkdf2Sync(pin, salt, 1000, 64, 'sha512').toString('hex');
   return `${salt}:${hash}`;
 }
 
@@ -76,13 +76,14 @@ function seedDatabase() {
     if (existingAdmin.count === 0) {
       console.log('Creating default admin user...');
       db.prepare(`
-        INSERT INTO users (id, email, display_name, password_hash, role, disabled, created_at, updated_at) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO users (id, username, email, display_name, pin_hash, role, disabled, created_at, updated_at) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         createId(),
+        'admin',
         'admin@kanora.local',
         'Admin',
-        hashPassword('admin123'), // Change this in production
+        hashPin('1234'), // Default PIN is 1234
         UserRole.ADMIN,
         0,
         new Date().toISOString(),

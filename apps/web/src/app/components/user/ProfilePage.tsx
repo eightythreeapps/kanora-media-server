@@ -4,9 +4,11 @@ import { ApiService } from '@kanora/data-access';
 
 interface ProfileFormData {
   displayName: string;
-  currentPassword: string;
-  newPassword: string;
-  confirmPassword: string;
+  email?: string;
+  currentPin?: string;
+  newPin?: string;
+  confirmPin?: string;
+  removePin?: boolean;
 }
 
 export const ProfilePage: React.FC = () => {
@@ -18,9 +20,11 @@ export const ProfilePage: React.FC = () => {
 
   const [formData, setFormData] = useState<ProfileFormData>({
     displayName: user?.displayName || '',
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
+    email: user?.email || '',
+    currentPin: '',
+    newPin: '',
+    confirmPin: '',
+    removePin: false,
   });
 
   useEffect(() => {
@@ -28,16 +32,39 @@ export const ProfilePage: React.FC = () => {
       setFormData((prev) => ({
         ...prev,
         displayName: user.displayName || '',
+        email: user.email || '',
       }));
     }
   }, [user]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value, type } = e.target as HTMLInputElement;
+    const checked = (e.target as HTMLInputElement).checked;
+
+    if (type === 'checkbox') {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: checked,
+      }));
+
+      // If removePin is checked, clear the PIN fields
+      if (name === 'removePin' && checked) {
+        setFormData((prev) => ({
+          ...prev,
+          [name]: checked,
+          currentPin: '',
+          newPin: '',
+          confirmPin: '',
+        }));
+      }
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -48,24 +75,56 @@ export const ProfilePage: React.FC = () => {
 
     try {
       // Validate form
-      if (
-        formData.newPassword &&
-        formData.newPassword !== formData.confirmPassword
-      ) {
-        setError('New passwords do not match');
+      if (!formData.displayName) {
+        setError('Display name is required');
         setLoading(false);
         return;
+      }
+
+      // Validate PIN if changing it
+      if (formData.newPin && formData.newPin !== formData.confirmPin) {
+        setError('New PINs do not match');
+        setLoading(false);
+        return;
+      }
+
+      // Validate PIN format if provided
+      if (formData.newPin) {
+        // PIN should be numeric
+        if (!/^\d+$/.test(formData.newPin)) {
+          setError('PIN must contain only digits');
+          setLoading(false);
+          return;
+        }
+
+        // PIN length validation
+        if (formData.newPin.length < 4) {
+          setError('PIN must be at least 4 digits');
+          setLoading(false);
+          return;
+        }
+
+        if (formData.newPin.length > 8) {
+          setError('PIN must not exceed 8 digits');
+          setLoading(false);
+          return;
+        }
       }
 
       // Prepare update data
       const updateData: any = {
         displayName: formData.displayName,
+        email: formData.email,
       };
 
-      // Only include password fields if changing password
-      if (formData.newPassword && formData.currentPassword) {
-        updateData.currentPassword = formData.currentPassword;
-        updateData.newPassword = formData.newPassword;
+      // Handle PIN changes
+      if (formData.removePin) {
+        updateData.removePin = true;
+      } else if (formData.newPin) {
+        updateData.newPin = formData.newPin;
+        if (user?.hasPin) {
+          updateData.currentPin = formData.currentPin;
+        }
       }
 
       // Call API to update profile
@@ -74,34 +133,22 @@ export const ProfilePage: React.FC = () => {
       if (response.success) {
         setSuccess('Profile updated successfully');
 
-        // If password was changed, prompt for re-login
-        if (formData.newPassword) {
-          setTimeout(() => {
-            setSuccess('Password changed. Please log in again.');
-            setTimeout(() => {
-              logout();
-            }, 2000);
-          }, 1000);
-        } else {
-          // Update local user data
-          if (updateUser) {
-            updateUser({
-              ...user,
-              displayName: formData.displayName,
-            });
-          }
-
-          // Reset form
-          setFormData((prev) => ({
-            ...prev,
-            currentPassword: '',
-            newPassword: '',
-            confirmPassword: '',
-          }));
-
-          // Exit edit mode
-          setIsEditing(false);
+        // Update local user data
+        if (updateUser && response.data) {
+          updateUser(response.data);
         }
+
+        // Reset form
+        setFormData((prev) => ({
+          ...prev,
+          currentPin: '',
+          newPin: '',
+          confirmPin: '',
+          removePin: false,
+        }));
+
+        // Exit edit mode
+        setIsEditing(false);
       } else {
         setError(response.error || 'Failed to update profile');
       }
@@ -162,64 +209,107 @@ export const ProfilePage: React.FC = () => {
                 />
               </div>
 
+              <div className="mb-6">
+                <label
+                  htmlFor="email"
+                  className="block mb-2 text-sm font-medium text-gray-700"
+                >
+                  Email (optional)
+                </label>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  value={formData.email || ''}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+
               <div className="py-4 mb-6 border-t border-b border-gray-200">
                 <h3 className="mb-4 text-lg font-medium text-gray-900">
-                  Change Password
+                  PIN Settings
                 </h3>
-                <p className="mb-4 text-sm text-gray-600">
-                  Leave blank to keep your current password
-                </p>
 
                 <div className="mb-4">
-                  <label
-                    htmlFor="currentPassword"
-                    className="block mb-2 text-sm font-medium text-gray-700"
-                  >
-                    Current Password
-                  </label>
-                  <input
-                    type="password"
-                    id="currentPassword"
-                    name="currentPassword"
-                    value={formData.currentPassword}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  />
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="removePin"
+                      name="removePin"
+                      checked={formData.removePin}
+                      onChange={handleChange}
+                      className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                    />
+                    <label
+                      htmlFor="removePin"
+                      className="ml-2 text-sm text-gray-700"
+                    >
+                      Remove PIN (allow login without PIN)
+                    </label>
+                  </div>
                 </div>
 
-                <div className="mb-4">
-                  <label
-                    htmlFor="newPassword"
-                    className="block mb-2 text-sm font-medium text-gray-700"
-                  >
-                    New Password
-                  </label>
-                  <input
-                    type="password"
-                    id="newPassword"
-                    name="newPassword"
-                    value={formData.newPassword}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  />
-                </div>
+                {!formData.removePin && (
+                  <>
+                    {user?.hasPin && (
+                      <div className="mb-4">
+                        <label
+                          htmlFor="currentPin"
+                          className="block mb-2 text-sm font-medium text-gray-700"
+                        >
+                          Current PIN
+                        </label>
+                        <input
+                          type="password"
+                          id="currentPin"
+                          name="currentPin"
+                          value={formData.currentPin || ''}
+                          onChange={handleChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        />
+                      </div>
+                    )}
 
-                <div className="mb-4">
-                  <label
-                    htmlFor="confirmPassword"
-                    className="block mb-2 text-sm font-medium text-gray-700"
-                  >
-                    Confirm New Password
-                  </label>
-                  <input
-                    type="password"
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  />
-                </div>
+                    <div className="mb-4">
+                      <label
+                        htmlFor="newPin"
+                        className="block mb-2 text-sm font-medium text-gray-700"
+                      >
+                        {user?.hasPin ? 'New PIN' : 'PIN'}
+                      </label>
+                      <input
+                        type="password"
+                        id="newPin"
+                        name="newPin"
+                        value={formData.newPin || ''}
+                        onChange={handleChange}
+                        placeholder="4-8 digits"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      />
+                      <p className="mt-1 text-sm text-gray-500">
+                        PIN must be 4-8 digits
+                      </p>
+                    </div>
+
+                    <div className="mb-4">
+                      <label
+                        htmlFor="confirmPin"
+                        className="block mb-2 text-sm font-medium text-gray-700"
+                      >
+                        Confirm PIN
+                      </label>
+                      <input
+                        type="password"
+                        id="confirmPin"
+                        name="confirmPin"
+                        value={formData.confirmPin || ''}
+                        onChange={handleChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      />
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="flex justify-end space-x-3">
@@ -258,14 +348,24 @@ export const ProfilePage: React.FC = () => {
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div>
+                    <p className="text-sm font-medium text-gray-500">Username</p>
+                    <p className="text-gray-900">{user.username}</p>
+                  </div>
+                  <div>
                     <p className="text-sm font-medium text-gray-500">Email</p>
-                    <p className="text-gray-900">{user.email}</p>
+                    <p className="text-gray-900">{user.email || 'Not set'}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-500">
                       Display Name
                     </p>
                     <p className="text-gray-900">{user.displayName}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">
+                      PIN Protected
+                    </p>
+                    <p className="text-gray-900">{user.hasPin ? 'Yes' : 'No'}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-500">

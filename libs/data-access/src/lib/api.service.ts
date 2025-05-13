@@ -5,14 +5,12 @@ import {
   PaginatedResponse,
   SearchQuery,
   LoginRequest,
-  RegisterRequest,
-  ForgotPasswordRequest,
-  ResetPasswordRequest,
   AuthResponse,
   User,
   UserListResponse,
   CreateUserRequest,
   UpdateUserRequest,
+  UpdateProfileRequest
 } from '@kanora/shared-types';
 
 // Create axios instance with base configuration
@@ -50,48 +48,6 @@ export class ApiService {
     }
   }
 
-  static async register(
-    data: RegisterRequest,
-  ): Promise<ApiResponse<AuthResponse>> {
-    try {
-      const response = await apiClient.post<ApiResponse<AuthResponse>>(
-        '/auth/register',
-        data,
-      );
-      return response.data;
-    } catch (error) {
-      return this.handleError<AuthResponse>(error);
-    }
-  }
-
-  static async forgotPassword(
-    data: ForgotPasswordRequest,
-  ): Promise<ApiResponse<null>> {
-    try {
-      const response = await apiClient.post<ApiResponse<null>>(
-        '/auth/forgot-password',
-        data,
-      );
-      return response.data;
-    } catch (error) {
-      return this.handleError<null>(error);
-    }
-  }
-
-  static async resetPassword(
-    data: ResetPasswordRequest,
-  ): Promise<ApiResponse<null>> {
-    try {
-      const response = await apiClient.post<ApiResponse<null>>(
-        '/auth/reset-password',
-        data,
-      );
-      return response.data;
-    } catch (error) {
-      return this.handleError<null>(error);
-    }
-  }
-
   static async getCurrentUser(): Promise<ApiResponse<User>> {
     try {
       const response = await apiClient.get<ApiResponse<User>>('/api/me');
@@ -101,11 +57,7 @@ export class ApiService {
     }
   }
 
-  static async updateProfile(data: {
-    displayName?: string;
-    currentPassword?: string;
-    newPassword?: string;
-  }): Promise<ApiResponse<User>> {
+  static async updateProfile(data: UpdateProfileRequest): Promise<ApiResponse<User>> {
     try {
       const response = await apiClient.put<ApiResponse<User>>('/api/me', data);
       return response.data;

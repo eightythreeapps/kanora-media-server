@@ -4,7 +4,7 @@ import { users, UserRole } from '../../db/schema/users';
 import { revokedTokens } from '../../db/schema/auth';
 import { eq } from 'drizzle-orm';
 import { ApiResponse } from '@kanora/shared-types';
-import { hashPassword, validatePasswordStrength, verifyPassword } from '../utils/password';
+import { hashPin, validatePin, verifyPin } from '../utils/pin';
 import {
   TokenPair,
   extractTokenFromHeader,
@@ -16,108 +16,17 @@ import {
 import jwt from 'jsonwebtoken';
 
 /**
- * Register a new user
- */
-export async function register(req: Request, res: Response) {
-  try {
-    const { email, password, displayName } = req.body;
-
-    // Validate required fields
-    if (!email || !password || !displayName) {
-      return res.status(400).json({
-        success: false,
-        error: 'Email, password, and display name are required',
-        timestamp: new Date().toISOString()
-      } as ApiResponse<null>);
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid email format',
-        timestamp: new Date().toISOString()
-      } as ApiResponse<null>);
-    }
-
-    // Validate password strength
-    const passwordValidation = validatePasswordStrength(password);
-    if (!passwordValidation.isValid) {
-      return res.status(400).json({
-        success: false,
-        error: passwordValidation.reason,
-        timestamp: new Date().toISOString()
-      } as ApiResponse<null>);
-    }
-
-    // Check if user already exists
-    const existingUser = await db.select()
-      .from(users)
-      .where(eq(users.email, email))
-      .get();
-
-    if (existingUser) {
-      return res.status(409).json({
-        success: false,
-        error: 'User with this email already exists',
-        timestamp: new Date().toISOString()
-      } as ApiResponse<null>);
-    }
-
-    // Hash the password
-    const passwordHash = await hashPassword(password);
-
-    // Create the user
-    const newUser = await db.insert(users)
-      .values({
-        email,
-        passwordHash,
-        displayName,
-        role: UserRole.USER
-      })
-      .returning()
-      .get();
-
-    // Generate tokens
-    const tokens = generateTokenPair(newUser.id, newUser.email, newUser.role);
-
-    // Return user profile and tokens
-    return res.status(201).json({
-      success: true,
-      data: {
-        user: {
-          id: newUser.id,
-          email: newUser.email,
-          displayName: newUser.displayName,
-          role: newUser.role
-        },
-        ...tokens
-      },
-      timestamp: new Date().toISOString()
-    } as ApiResponse<any>);
-  } catch (error) {
-    console.error('Registration error:', error);
-    return res.status(500).json({
-      success: false,
-      error: 'Internal server error during registration',
-      timestamp: new Date().toISOString()
-    } as ApiResponse<null>);
-  }
-}
-
-/**
- * Login a user
+ * Login a user with username and PIN
  */
 export async function login(req: Request, res: Response) {
   try {
-    const { email, password } = req.body;
+    const { username, pin } = req.body;
 
     // Validate required fields
-    if (!email || !password) {
+    if (!username) {
       return res.status(400).json({
         success: false,
-        error: 'Email and password are required',
+        error: 'Username is required',
         timestamp: new Date().toISOString()
       } as ApiResponse<null>);
     }
@@ -125,7 +34,7 @@ export async function login(req: Request, res: Response) {
     // Find the user
     const user = await db.select()
       .from(users)
-      .where(eq(users.email, email))
+      .where(eq(users.username, username))
       .get();
 
     // Check if user exists and is not disabled
@@ -137,14 +46,30 @@ export async function login(req: Request, res: Response) {
       } as ApiResponse<null>);
     }
 
-    // Verify password
-    const isPasswordValid = await verifyPassword(password, user.passwordHash);
-    if (!isPasswordValid) {
-      return res.status(401).json({
-        success: false,
-        error: 'Invalid credentials',
-        timestamp: new Date().toISOString()
-      } as ApiResponse<null>);
+    // For PIN-based authentication
+    if (user.pinHash) {
+      // PIN is required for users with PIN authentication
+      if (!pin) {
+        return res.status(400).json({
+          success: false,
+          error: 'PIN is required',
+          timestamp: new Date().toISOString()
+        } as ApiResponse<null>);
+      }
+
+      // Verify PIN
+      const isPinValid = await verifyPin(pin, user.pinHash);
+      if (!isPinValid) {
+        return res.status(401).json({
+          success: false,
+          error: 'Invalid credentials',
+          timestamp: new Date().toISOString()
+        } as ApiResponse<null>);
+      }
+    } else {
+      // If the user doesn't have a PIN set, they can log in without one
+      // This allows for non-protected user accounts that don't require authentication
+      // You might want to restrict access further based on your security requirements
     }
 
     // Update last login time
@@ -154,7 +79,7 @@ export async function login(req: Request, res: Response) {
       .run();
 
     // Generate tokens
-    const tokens = generateTokenPair(user.id, user.email, user.role);
+    const tokens = generateTokenPair(user.id, user.username, user.role);
 
     // Return user profile and tokens
     return res.status(200).json({
@@ -162,6 +87,7 @@ export async function login(req: Request, res: Response) {
       data: {
         user: {
           id: user.id,
+          username: user.username,
           email: user.email,
           displayName: user.displayName,
           role: user.role
@@ -238,7 +164,7 @@ export async function refreshToken(req: Request, res: Response) {
     await revokeToken(decoded.jti, user.id, expiryDate);
 
     // Generate new token pair
-    const newTokens = generateTokenPair(user.id, user.email, user.role);
+    const newTokens = generateTokenPair(user.id, user.username, user.role);
 
     // Return the new tokens
     return res.status(200).json({

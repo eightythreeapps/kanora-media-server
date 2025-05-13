@@ -8,7 +8,7 @@ import { eq, lt } from 'drizzle-orm';
 // Token types
 export interface TokenPayload {
   sub: string;        // Subject (user ID)
-  email: string;      // User email
+  username: string;   // Username
   role: string;       // User role
   jti: string;        // JWT ID (unique identifier for this token)
   type: 'access' | 'refresh'; // Token type
@@ -23,10 +23,10 @@ export interface TokenPair {
 /**
  * Generate a JWT access token for a user
  */
-export function generateAccessToken(userId: string, email: string, role: string): string {
+export function generateAccessToken(userId: string, username: string, role: string): string {
   const payload: TokenPayload = {
     sub: userId,
-    email,
+    username,
     role,
     jti: createId(),
     type: 'access'
@@ -42,10 +42,10 @@ export function generateAccessToken(userId: string, email: string, role: string)
 /**
  * Generate a JWT refresh token for a user
  */
-export function generateRefreshToken(userId: string, email: string, role: string): string {
+export function generateRefreshToken(userId: string, username: string, role: string): string {
   const payload: TokenPayload = {
     sub: userId,
-    email,
+    username,
     role,
     jti: createId(),
     type: 'refresh'
@@ -61,9 +61,9 @@ export function generateRefreshToken(userId: string, email: string, role: string
 /**
  * Generate a pair of tokens (access + refresh) for a user
  */
-export function generateTokenPair(userId: string, email: string, role: string): TokenPair {
-  const accessToken = generateAccessToken(userId, email, role);
-  const refreshToken = generateRefreshToken(userId, email, role);
+export function generateTokenPair(userId: string, username: string, role: string): TokenPair {
+  const accessToken = generateAccessToken(userId, username, role);
+  const refreshToken = generateRefreshToken(userId, username, role);
   
   // Calculate expiration in seconds
   const decodedAccess = jwt.decode(accessToken) as jwt.JwtPayload;

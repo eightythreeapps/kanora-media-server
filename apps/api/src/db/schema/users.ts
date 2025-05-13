@@ -10,9 +10,10 @@ export enum UserRole {
 // Define the users table schema
 export const users = sqliteTable('users', {
   id: text('id').primaryKey().$defaultFn(() => createId()),
-  email: text('email').notNull().unique(),
+  username: text('username').notNull().unique(),
+  email: text('email'),
   displayName: text('display_name').notNull(),
-  passwordHash: text('password_hash').notNull(),
+  pinHash: text('pin_hash'),
   role: text('role', { enum: [UserRole.USER, UserRole.ADMIN] })
     .notNull()
     .default(UserRole.USER),
