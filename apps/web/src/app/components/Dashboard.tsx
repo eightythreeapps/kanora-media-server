@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 export const Dashboard: React.FC = () => {
@@ -17,7 +18,8 @@ export const Dashboard: React.FC = () => {
               Welcome to Kanora
             </h1>
             <p className="mt-2 text-lg text-gray-600">
-              Hello, {user?.firstName} {user?.lastName}!
+              Hello,{' '}
+              {user?.displayName || `${user?.firstName} ${user?.lastName}`}!
             </p>
           </div>
 
@@ -31,10 +33,14 @@ export const Dashboard: React.FC = () => {
                 <span className="text-gray-800">{user?.email}</span>
               </div>
               <div className="flex">
-                <span className="w-32 font-medium text-gray-600">Name:</span>
-                <span className="text-gray-800">
-                  {user?.firstName} {user?.lastName}
+                <span className="w-32 font-medium text-gray-600">
+                  Display Name:
                 </span>
+                <span className="text-gray-800">{user?.displayName}</span>
+              </div>
+              <div className="flex">
+                <span className="w-32 font-medium text-gray-600">Role:</span>
+                <span className="text-gray-800">{user?.role}</span>
               </div>
               <div className="flex">
                 <span className="w-32 font-medium text-gray-600">Joined:</span>
@@ -44,6 +50,28 @@ export const Dashboard: React.FC = () => {
                     : 'N/A'}
                 </span>
               </div>
+            </div>
+            <div className="mt-4">
+              <Link
+                to="/profile"
+                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-4 h-4 mr-2"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
+                </svg>
+                Manage Profile
+              </Link>
             </div>
           </div>
 
@@ -117,6 +145,40 @@ export const Dashboard: React.FC = () => {
               </button>
             </div>
           </div>
+
+          {/* Admin-only section */}
+          {user?.role === 'admin' && (
+            <div className="p-6 mt-6 bg-purple-50 rounded-lg border border-purple-200">
+              <h2 className="text-2xl font-semibold text-purple-800">
+                Admin Controls
+              </h2>
+              <p className="mt-2 text-purple-600">
+                These controls are only available to admin users.
+              </p>
+              <div className="mt-4 space-y-2">
+                <Link
+                  to="/admin/users"
+                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="w-4 h-4 mr-2"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+                    />
+                  </svg>
+                  Manage Users
+                </Link>
+              </div>
+            </div>
+          )}
 
           <div className="flex justify-center mt-8">
             <button

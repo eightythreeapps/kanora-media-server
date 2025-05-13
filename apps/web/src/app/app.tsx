@@ -14,6 +14,9 @@ import { ForgotPasswordForm } from './components/auth/ForgotPasswordForm';
 import { ResetPasswordForm } from './components/auth/ResetPasswordForm';
 import { Dashboard } from './components/Dashboard';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { ProfilePage } from './components/user/ProfilePage';
+import { UserList } from './components/user/UserList';
+import { UserForm } from './components/user/UserForm';
 
 const HomePage = () => {
   const [mediaItems, setMediaItems] = useState<Media[]>([]);
@@ -137,6 +140,11 @@ export function App() {
         {/* Protected routes */}
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/profile" element={<ProfilePage />} />
+
+          {/* Admin User Management routes */}
+          <Route path="/admin/users" element={<UserList />} />
+          <Route path="/admin/users/:id" element={<UserForm />} />
         </Route>
 
         {/* Catch all - redirect to login */}
