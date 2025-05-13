@@ -3,40 +3,47 @@ import { db } from '../../db/config';
 import { artists } from '../../db/schema/artists';
 import { albums } from '../../db/schema/albums';
 import { tracks } from '../../db/schema/tracks';
-import { eq, like, sql } from 'drizzle-orm';
+import { eq, like, sql, desc, and } from 'drizzle-orm';
 
 /**
  * Get all artists
  */
-export const getAllArtists = async (req: Request, res: Response): Promise<void> => {
+export const getAllArtists = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   try {
     const { q, sort = 'name', order = 'asc' } = req.query;
-    
-    // Start query
-    let query = db.select().from(artists);
-    
-    // Apply search filter if provided
+
+    // Build where conditions
+    const whereConditions = [];
+
     if (q && typeof q === 'string') {
-      query = query.where(like(artists.name, `%${q}%`));
+      whereConditions.push(like(artists.name, `%${q}%`));
     }
-    
+
+    // Start query
+    const query = db
+      .select()
+      .from(artists)
+      .where(whereConditions.length ? and(...whereConditions) : undefined);
+
     // Apply sorting
-    if (sort === 'name' && order === 'asc') {
-      query = query.orderBy(artists.sortName);
-    } else if (sort === 'name' && order === 'desc') {
-      query = query.orderBy(artists.sortName, 'desc');
-    }
-    
+    const finalQuery =
+      sort === 'name' && order === 'desc'
+        ? query.orderBy(desc(artists.sortName))
+        : query.orderBy(artists.sortName);
+
     // Execute query
-    const artistsList = await query;
-    
+    const artistsList = await finalQuery;
+
     res.status(200).json({
       success: true,
       data: artistsList,
     });
   } catch (error) {
     console.error('Error getting artists:', error);
-    
+
     res.status(500).json({
       success: false,
       message: 'Failed to get artists',
@@ -48,15 +55,18 @@ export const getAllArtists = async (req: Request, res: Response): Promise<void> 
 /**
  * Get a single artist by ID
  */
-export const getArtistById = async (req: Request, res: Response): Promise<void> => {
+export const getArtistById = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   try {
     const { id } = req.params;
-    
+
     // Get artist
     const artist = await db.query.artists.findFirst({
       where: eq(artists.id, id),
     });
-    
+
     if (!artist) {
       res.status(404).json({
         success: false,
@@ -64,14 +74,14 @@ export const getArtistById = async (req: Request, res: Response): Promise<void> 
       });
       return;
     }
-    
+
     // Get albums for this artist
     const artistAlbums = await db
       .select()
       .from(albums)
       .where(eq(albums.artistId, id))
       .orderBy(albums.sortTitle);
-    
+
     res.status(200).json({
       success: true,
       data: {
@@ -81,7 +91,7 @@ export const getArtistById = async (req: Request, res: Response): Promise<void> 
     });
   } catch (error) {
     console.error('Error getting artist:', error);
-    
+
     res.status(500).json({
       success: false,
       message: 'Failed to get artist',
@@ -93,58 +103,67 @@ export const getArtistById = async (req: Request, res: Response): Promise<void> 
 /**
  * Get all albums
  */
-export const getAllAlbums = async (req: Request, res: Response): Promise<void> => {
+export const getAllAlbums = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   try {
     const { q, artist, sort = 'title', order = 'asc' } = req.query;
-    
-    // Start query
-    let query = db.select({
-      id: albums.id,
-      title: albums.title,
-      sortTitle: albums.sortTitle,
-      artistId: albums.artistId,
-      year: albums.year,
-      coverArtPath: albums.coverArtPath,
-      artistName: artists.name,
-    })
-    .from(albums)
-    .leftJoin(artists, eq(albums.artistId, artists.id));
-    
-    // Apply artist filter if provided
+
+    // Build where conditions
+    const whereConditions = [];
+
     if (artist && typeof artist === 'string') {
-      query = query.where(eq(albums.artistId, artist));
+      whereConditions.push(eq(albums.artistId, artist));
     }
-    
-    // Apply search filter if provided
+
     if (q && typeof q === 'string') {
-      query = query.where(like(albums.title, `%${q}%`));
+      whereConditions.push(like(albums.title, `%${q}%`));
     }
-    
+
+    // Start query with join
+    const baseQuery = db
+      .select({
+        id: albums.id,
+        title: albums.title,
+        sortTitle: albums.sortTitle,
+        artistId: albums.artistId,
+        year: albums.year,
+        coverArtPath: albums.coverArtPath,
+        artistName: artists.name,
+      })
+      .from(albums)
+      .leftJoin(artists, eq(albums.artistId, artists.id))
+      .where(whereConditions.length ? and(...whereConditions) : undefined);
+
     // Apply sorting
-    if (sort === 'title' && order === 'asc') {
-      query = query.orderBy(albums.sortTitle);
-    } else if (sort === 'title' && order === 'desc') {
-      query = query.orderBy(albums.sortTitle, 'desc');
-    } else if (sort === 'year' && order === 'asc') {
-      query = query.orderBy(albums.year);
+    let query;
+    if (sort === 'title' && order === 'desc') {
+      query = baseQuery.orderBy(desc(albums.sortTitle));
+    } else if (sort === 'title' && order === 'asc') {
+      query = baseQuery.orderBy(albums.sortTitle);
     } else if (sort === 'year' && order === 'desc') {
-      query = query.orderBy(albums.year, 'desc');
-    } else if (sort === 'artist' && order === 'asc') {
-      query = query.orderBy(artists.sortName);
+      query = baseQuery.orderBy(desc(albums.year));
+    } else if (sort === 'year' && order === 'asc') {
+      query = baseQuery.orderBy(albums.year);
     } else if (sort === 'artist' && order === 'desc') {
-      query = query.orderBy(artists.sortName, 'desc');
+      query = baseQuery.orderBy(desc(artists.sortName));
+    } else if (sort === 'artist' && order === 'asc') {
+      query = baseQuery.orderBy(artists.sortName);
+    } else {
+      query = baseQuery.orderBy(albums.sortTitle);
     }
-    
+
     // Execute query
     const albumsList = await query;
-    
+
     res.status(200).json({
       success: true,
       data: albumsList,
     });
   } catch (error) {
     console.error('Error getting albums:', error);
-    
+
     res.status(500).json({
       success: false,
       message: 'Failed to get albums',
@@ -156,10 +175,13 @@ export const getAllAlbums = async (req: Request, res: Response): Promise<void> =
 /**
  * Get a single album by ID
  */
-export const getAlbumById = async (req: Request, res: Response): Promise<void> => {
+export const getAlbumById = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   try {
     const { id } = req.params;
-    
+
     // Get album with artist info
     const album = await db
       .select({
@@ -174,8 +196,8 @@ export const getAlbumById = async (req: Request, res: Response): Promise<void> =
       .from(albums)
       .leftJoin(artists, eq(albums.artistId, artists.id))
       .where(eq(albums.id, id))
-      .then(rows => rows[0]);
-    
+      .then((rows) => rows[0]);
+
     if (!album) {
       res.status(404).json({
         success: false,
@@ -183,14 +205,14 @@ export const getAlbumById = async (req: Request, res: Response): Promise<void> =
       });
       return;
     }
-    
+
     // Get tracks for this album
     const albumTracks = await db
       .select()
       .from(tracks)
       .where(eq(tracks.albumId, id))
       .orderBy(tracks.discNumber, tracks.trackNumber);
-    
+
     res.status(200).json({
       success: true,
       data: {
@@ -200,7 +222,7 @@ export const getAlbumById = async (req: Request, res: Response): Promise<void> =
     });
   } catch (error) {
     console.error('Error getting album:', error);
-    
+
     res.status(500).json({
       success: false,
       message: 'Failed to get album',
@@ -212,85 +234,114 @@ export const getAlbumById = async (req: Request, res: Response): Promise<void> =
 /**
  * Get all tracks
  */
-export const getAllTracks = async (req: Request, res: Response): Promise<void> => {
+export const getAllTracks = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   try {
-    const { 
-      q, 
-      artist, 
+    const {
+      q,
+      artist,
       album,
-      sort = 'title', 
+      sort = 'title',
       order = 'asc',
       limit = '100',
-      offset = '0'
+      offset = '0',
     } = req.query;
-    
+
     // Parse limit and offset
     const parsedLimit = Math.min(parseInt(limit as string) || 100, 1000);
     const parsedOffset = parseInt(offset as string) || 0;
-    
-    // Start query
-    let query = db.select({
-      id: tracks.id,
-      title: tracks.title,
-      sortTitle: tracks.sortTitle,
-      artistId: tracks.artistId,
-      albumId: tracks.albumId,
-      trackNumber: tracks.trackNumber,
-      discNumber: tracks.discNumber,
-      duration: tracks.duration,
-      format: tracks.format,
-      bitrate: tracks.bitrate,
-      artistName: artists.name,
-      albumTitle: albums.title,
-      year: albums.year,
-    })
-    .from(tracks)
-    .leftJoin(artists, eq(tracks.artistId, artists.id))
-    .leftJoin(albums, eq(tracks.albumId, albums.id));
-    
-    // Apply artist filter if provided
+
+    // Build where conditions
+    const whereConditions = [];
+
     if (artist && typeof artist === 'string') {
-      query = query.where(eq(tracks.artistId, artist));
+      whereConditions.push(eq(tracks.artistId, artist));
     }
-    
-    // Apply album filter if provided
+
     if (album && typeof album === 'string') {
-      query = query.where(eq(tracks.albumId, album));
+      whereConditions.push(eq(tracks.albumId, album));
     }
-    
-    // Apply search filter if provided
+
     if (q && typeof q === 'string') {
-      query = query.where(like(tracks.title, `%${q}%`));
+      whereConditions.push(like(tracks.title, `%${q}%`));
     }
-    
+
+    // Start query with join
+    const baseQuery = db
+      .select({
+        id: tracks.id,
+        title: tracks.title,
+        sortTitle: tracks.sortTitle,
+        artistId: tracks.artistId,
+        albumId: tracks.albumId,
+        trackNumber: tracks.trackNumber,
+        discNumber: tracks.discNumber,
+        duration: tracks.duration,
+        format: tracks.format,
+        bitrate: tracks.bitrate,
+        artistName: artists.name,
+        albumTitle: albums.title,
+        year: albums.year,
+      })
+      .from(tracks)
+      .leftJoin(artists, eq(tracks.artistId, artists.id))
+      .leftJoin(albums, eq(tracks.albumId, albums.id))
+      .where(whereConditions.length ? and(...whereConditions) : undefined);
+
     // Apply sorting
-    if (sort === 'title' && order === 'asc') {
-      query = query.orderBy(tracks.sortTitle);
-    } else if (sort === 'title' && order === 'desc') {
-      query = query.orderBy(tracks.sortTitle, 'desc');
+    let query;
+    if (sort === 'title' && order === 'desc') {
+      query = baseQuery.orderBy(desc(tracks.sortTitle));
+    } else if (sort === 'title' && order === 'asc') {
+      query = baseQuery.orderBy(tracks.sortTitle);
     } else if (sort === 'album' && order === 'asc') {
-      query = query.orderBy(albums.sortTitle, tracks.discNumber, tracks.trackNumber);
+      query = baseQuery.orderBy(
+        albums.sortTitle,
+        tracks.discNumber,
+        tracks.trackNumber,
+      );
     } else if (sort === 'album' && order === 'desc') {
-      query = query.orderBy(albums.sortTitle, 'desc', tracks.discNumber, 'desc', tracks.trackNumber, 'desc');
+      query = baseQuery.orderBy(
+        desc(albums.sortTitle),
+        desc(tracks.discNumber),
+        desc(tracks.trackNumber),
+      );
     } else if (sort === 'artist' && order === 'asc') {
-      query = query.orderBy(artists.sortName, albums.sortTitle, tracks.discNumber, tracks.trackNumber);
+      query = baseQuery.orderBy(
+        artists.sortName,
+        albums.sortTitle,
+        tracks.discNumber,
+        tracks.trackNumber,
+      );
     } else if (sort === 'artist' && order === 'desc') {
-      query = query.orderBy(artists.sortName, 'desc', albums.sortTitle, 'desc', tracks.discNumber, 'desc', tracks.trackNumber, 'desc');
+      query = baseQuery.orderBy(
+        desc(artists.sortName),
+        desc(albums.sortTitle),
+        desc(tracks.discNumber),
+        desc(tracks.trackNumber),
+      );
     } else if (sort === 'duration' && order === 'asc') {
-      query = query.orderBy(tracks.duration);
+      query = baseQuery.orderBy(tracks.duration);
     } else if (sort === 'duration' && order === 'desc') {
-      query = query.orderBy(tracks.duration, 'desc');
+      query = baseQuery.orderBy(desc(tracks.duration));
+    } else {
+      query = baseQuery.orderBy(tracks.sortTitle);
     }
-    
+
     // Apply pagination
-    query = query.limit(parsedLimit).offset(parsedOffset);
-    
+    const paginatedQuery = query.limit(parsedLimit).offset(parsedOffset);
+
     // Execute query
-    const tracksList = await query;
-    
+    const tracksList = await paginatedQuery;
+
     // Get total count for pagination
-    const totalCount = await db.select({ count: sql`count(*)` }).from(tracks).then(rows => Number(rows[0].count));
-    
+    const totalCount = await db
+      .select({ count: sql`count(*)` })
+      .from(tracks)
+      .then((rows) => Number(rows[0].count));
+
     res.status(200).json({
       success: true,
       data: {
@@ -304,7 +355,7 @@ export const getAllTracks = async (req: Request, res: Response): Promise<void> =
     });
   } catch (error) {
     console.error('Error getting tracks:', error);
-    
+
     res.status(500).json({
       success: false,
       message: 'Failed to get tracks',
@@ -316,10 +367,13 @@ export const getAllTracks = async (req: Request, res: Response): Promise<void> =
 /**
  * Get a single track by ID
  */
-export const getTrackById = async (req: Request, res: Response): Promise<void> => {
+export const getTrackById = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   try {
     const { id } = req.params;
-    
+
     // Get track with artist and album info
     const track = await db
       .select({
@@ -344,8 +398,8 @@ export const getTrackById = async (req: Request, res: Response): Promise<void> =
       .leftJoin(artists, eq(tracks.artistId, artists.id))
       .leftJoin(albums, eq(tracks.albumId, albums.id))
       .where(eq(tracks.id, id))
-      .then(rows => rows[0]);
-    
+      .then((rows) => rows[0]);
+
     if (!track) {
       res.status(404).json({
         success: false,
@@ -353,14 +407,14 @@ export const getTrackById = async (req: Request, res: Response): Promise<void> =
       });
       return;
     }
-    
+
     res.status(200).json({
       success: true,
       data: track,
     });
   } catch (error) {
     console.error('Error getting track:', error);
-    
+
     res.status(500).json({
       success: false,
       message: 'Failed to get track',
