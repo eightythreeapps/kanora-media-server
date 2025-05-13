@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface LoginFormData {
-  email: string;
-  password: string;
+  username: string;
+  pin?: string;
 }
 
 export const LoginForm: React.FC = () => {
@@ -25,14 +25,16 @@ export const LoginForm: React.FC = () => {
     setError(null);
 
     try {
-      const success = await login(data.email, data.password);
+      const success = await login(data.username, data.pin || undefined);
       if (success) {
         navigate('/dashboard');
       } else {
-        setError('Invalid email or password. Please try again.');
+        setError(
+          "Hmm, those credentials don't match our records. Give it another try?",
+        );
       }
     } catch (err) {
-      setError('An error occurred. Please try again later.');
+      setError('Oops! Something went wrong on our end. Try again in a moment.');
       console.error(err);
     } finally {
       setIsSubmitting(false);
@@ -42,9 +44,9 @@ export const LoginForm: React.FC = () => {
   return (
     <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow-lg">
       <div className="text-center">
-        <h1 className="text-4xl font-bold text-gray-900">Login</h1>
+        <h1 className="text-4xl font-bold text-gray-900">Welcome Back</h1>
         <p className="mt-2 text-sm text-gray-600">
-          Welcome back! Please sign in to your account.
+          Your music collection is ready for you
         </p>
       </div>
 
@@ -60,30 +62,27 @@ export const LoginForm: React.FC = () => {
       <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
         <div>
           <label
-            htmlFor="email"
+            htmlFor="username"
             className="block text-sm font-medium text-gray-700"
           >
-            Email
+            Username
           </label>
           <div className="mt-1">
             <input
-              id="email"
-              type="email"
-              autoComplete="email"
+              id="username"
+              type="text"
+              autoComplete="username"
+              placeholder="Enter your username"
               className={`w-full px-3 py-2 border ${
-                errors.email ? 'border-red-500' : 'border-gray-300'
+                errors.username ? 'border-red-500' : 'border-gray-300'
               } rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500`}
-              {...register('email', {
-                required: 'Email is required',
-                pattern: {
-                  value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                  message: 'Invalid email address',
-                },
+              {...register('username', {
+                required: 'Username is required',
               })}
             />
-            {errors.email && (
+            {errors.username && (
               <p className="mt-1 text-sm text-red-600">
-                {errors.email.message}
+                {errors.username.message}
               </p>
             )}
           </div>
@@ -91,59 +90,41 @@ export const LoginForm: React.FC = () => {
 
         <div>
           <label
-            htmlFor="password"
+            htmlFor="pin"
             className="block text-sm font-medium text-gray-700"
           >
-            Password
+            PIN (if required)
           </label>
           <div className="mt-1">
             <input
-              id="password"
+              id="pin"
               type="password"
               autoComplete="current-password"
+              placeholder="Your PIN"
               className={`w-full px-3 py-2 border ${
-                errors.password ? 'border-red-500' : 'border-gray-300'
+                errors.pin ? 'border-red-500' : 'border-gray-300'
               } rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500`}
-              {...register('password', {
-                required: 'Password is required',
-                minLength: {
-                  value: 8,
-                  message: 'Password must be at least 8 characters',
-                },
-              })}
+              {...register('pin')}
             />
-            {errors.password && (
-              <p className="mt-1 text-sm text-red-600">
-                {errors.password.message}
-              </p>
+            {errors.pin && (
+              <p className="mt-1 text-sm text-red-600">{errors.pin.message}</p>
             )}
           </div>
         </div>
 
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <input
-              id="remember-me"
-              name="remember-me"
-              type="checkbox"
-              className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
-            />
-            <label
-              htmlFor="remember-me"
-              className="block ml-2 text-sm text-gray-900"
-            >
-              Remember me
-            </label>
-          </div>
-
-          <div className="text-sm">
-            <Link
-              to="/forgot-password"
-              className="font-medium text-primary-600 hover:text-primary-500"
-            >
-              Forgot your password?
-            </Link>
-          </div>
+        <div className="flex items-center">
+          <input
+            id="remember-me"
+            name="remember-me"
+            type="checkbox"
+            className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+          />
+          <label
+            htmlFor="remember-me"
+            className="block ml-2 text-sm text-gray-900"
+          >
+            Remember me
+          </label>
         </div>
 
         <div>
@@ -152,19 +133,13 @@ export const LoginForm: React.FC = () => {
             disabled={isSubmitting}
             className="w-full px-4 py-2 text-sm font-medium text-white bg-primary-600 border border-transparent rounded-md shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isSubmitting ? 'Signing in...' : 'Sign in'}
+            {isSubmitting ? 'Signing In...' : 'Sign In'}
           </button>
         </div>
       </form>
 
-      <div className="text-sm text-center text-gray-600">
-        Don't have an account?{' '}
-        <Link
-          to="/register"
-          className="font-medium text-primary-600 hover:text-primary-500"
-        >
-          Register now
-        </Link>
+      <div className="text-xs text-center text-gray-600">
+        Kanora - Your personal music collection
       </div>
     </div>
   );

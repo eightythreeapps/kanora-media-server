@@ -32,7 +32,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
               to="/login"
               className="text-sm font-medium text-gray-700 hover:text-primary-600"
             >
-              Login
+              Sign In
             </Link>
             <Link
               to="/register"
@@ -54,8 +54,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
         <div className="container px-4 mx-auto">
           <div className="flex flex-col items-center justify-between space-y-4 md:flex-row md:space-y-0">
             <div className="text-sm text-gray-600">
-              &copy; {new Date().getFullYear()} Kanora Media Server. All rights
-              reserved.
+              &copy; {new Date().getFullYear()} Kanora Media Server
             </div>
             <div className="flex space-x-4">
               <Link
@@ -74,7 +73,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
                 to="/contact"
                 className="text-sm text-gray-600 hover:text-primary-600"
               >
-                Contact Us
+                Contact
               </Link>
             </div>
           </div>
