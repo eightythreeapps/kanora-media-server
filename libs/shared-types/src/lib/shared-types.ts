@@ -58,11 +58,11 @@ export interface Photo extends Media {
 
 export interface User {
   id: string;
-  username: string;
   email: string;
-  dateCreated: string;
-  lastLogin?: string;
-  preferences?: UserPreferences;
+  firstName: string;
+  lastName: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface UserPreferences {
@@ -106,4 +106,34 @@ export interface SearchQuery {
   sortOrder?: 'asc' | 'desc';
   page?: number;
   pageSize?: number;
+}
+
+// Authentication types
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface RegisterRequest {
+  email: string;
+  password: string;
+  confirmPassword: string;
+  firstName: string;
+  lastName: string;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  password: string;
+  confirmPassword: string;
+}
+
+export interface AuthResponse {
+  user: User;
+  accessToken: string;
+  refreshToken: string;
 }
