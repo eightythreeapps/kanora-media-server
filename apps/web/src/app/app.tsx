@@ -9,9 +9,8 @@ import { Button, MediaCard } from '@kanora/ui';
 import { AuthProvider } from './contexts/AuthContext';
 import { AuthLayout } from './components/auth/AuthLayout';
 import { LoginForm } from './components/auth/LoginForm';
-import { RegisterForm } from './components/auth/RegisterForm';
-import { ForgotPasswordForm } from './components/auth/ForgotPasswordForm';
-import { ResetPasswordForm } from './components/auth/ResetPasswordForm';
+import { UserAccessDenied } from './components/auth/UserAccessDenied';
+import { SetupForm } from './components/auth/SetupForm';
 import { Dashboard } from './components/Dashboard';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { ProfilePage } from './components/user/ProfilePage';
@@ -112,11 +111,23 @@ export function App() {
             </AuthLayout>
           }
         />
+        
+        {/* Setup route */}
+        <Route
+          path="/setup"
+          element={
+            <AuthLayout>
+              <SetupForm />
+            </AuthLayout>
+          }
+        />
+
+        {/* Redirect old auth routes to access denied */}
         <Route
           path="/register"
           element={
             <AuthLayout>
-              <RegisterForm />
+              <UserAccessDenied />
             </AuthLayout>
           }
         />
@@ -124,7 +135,7 @@ export function App() {
           path="/forgot-password"
           element={
             <AuthLayout>
-              <ForgotPasswordForm />
+              <UserAccessDenied />
             </AuthLayout>
           }
         />
@@ -132,7 +143,7 @@ export function App() {
           path="/reset-password/:token"
           element={
             <AuthLayout>
-              <ResetPasswordForm />
+              <UserAccessDenied />
             </AuthLayout>
           }
         />

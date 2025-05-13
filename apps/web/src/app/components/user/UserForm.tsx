@@ -9,11 +9,12 @@ import {
 } from '@kanora/shared-types';
 
 interface UserFormData {
-  email: string;
+  username: string;
+  email?: string;
   displayName: string;
   role: string;
-  password: string;
-  confirmPassword: string;
+  pin?: string;
+  confirmPin?: string;
 }
 
 export const UserForm: React.FC = () => {
@@ -24,17 +25,19 @@ export const UserForm: React.FC = () => {
   const isEditMode = id !== 'new';
 
   const [formData, setFormData] = useState<UserFormData>({
+    username: '',
     email: '',
     displayName: '',
     role: 'user',
-    password: '',
-    confirmPassword: '',
+    pin: '',
+    confirmPin: '',
   });
 
   const [loading, setLoading] = useState<boolean>(false);
   const [loadingUser, setLoadingUser] = useState<boolean>(isEditMode);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [removePin, setRemovePin] = useState<boolean>(false);
 
   // Fetch user data if in edit mode
   useEffect(() => {
@@ -52,6 +55,7 @@ export const UserForm: React.FC = () => {
             const userData = response.data as User;
             setFormData((prev) => ({
               ...prev,
+              username: userData.username || '',
               email: userData.email || '',
               displayName: userData.displayName || '',
               role: userData.role || 'user',
@@ -89,20 +93,39 @@ export const UserForm: React.FC = () => {
 
     try {
       // Validate form
-      if (
-        !formData.email ||
-        !formData.displayName ||
-        (!isEditMode && !formData.password)
-      ) {
-        setError('Please fill in all required fields');
+      if (!formData.username || !formData.displayName) {
+        setError('Username and display name are required');
         setLoading(false);
         return;
       }
 
-      if (!isEditMode && formData.password !== formData.confirmPassword) {
-        setError('Passwords do not match');
+      if (formData.pin && formData.pin !== formData.confirmPin) {
+        setError('PINs do not match');
         setLoading(false);
         return;
+      }
+
+      // Validate PIN if provided
+      if (formData.pin) {
+        // PIN should be numeric
+        if (!/^\d+$/.test(formData.pin)) {
+          setError('PIN must contain only digits');
+          setLoading(false);
+          return;
+        }
+
+        // PIN length validation
+        if (formData.pin.length < 4) {
+          setError('PIN must be at least 4 digits');
+          setLoading(false);
+          return;
+        }
+
+        if (formData.pin.length > 8) {
+          setError('PIN must not exceed 8 digits');
+          setLoading(false);
+          return;
+        }
       }
 
       // Prepare data for API
@@ -111,25 +134,32 @@ export const UserForm: React.FC = () => {
       if (isEditMode && id) {
         // Update existing user
         const updateData: UpdateUserRequest = {
+          username: formData.username,
           email: formData.email,
           displayName: formData.displayName,
           role: formData.role,
         };
 
-        // Only add password if provided
-        if (formData.password) {
-          updateData.password = formData.password;
+        // Handle PIN changes
+        if (formData.pin) {
+          updateData.pin = formData.pin;
+        } else if (removePin) {
+          updateData.removePin = true;
         }
 
         response = await ApiService.updateUser(id, updateData);
       } else {
         // Create new user
         const createData: CreateUserRequest = {
+          username: formData.username,
           email: formData.email,
           displayName: formData.displayName,
           role: formData.role,
-          password: formData.password,
         };
+
+        if (formData.pin) {
+          createData.pin = formData.pin;
+        }
 
         response = await ApiService.createUser(createData);
       }
@@ -199,19 +229,42 @@ export const UserForm: React.FC = () => {
           <form onSubmit={handleSubmit}>
             <div className="mb-4">
               <label
+                htmlFor="username"
+                className="block mb-2 text-sm font-medium text-gray-700"
+              >
+                Username <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                id="username"
+                name="username"
+                value={formData.username}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                required
+                disabled={isEditMode} // Username shouldn't be editable once created
+              />
+              {!isEditMode && (
+                <p className="mt-1 text-sm text-gray-500">
+                  Username must contain only letters, numbers, and underscores
+                </p>
+              )}
+            </div>
+
+            <div className="mb-4">
+              <label
                 htmlFor="email"
                 className="block mb-2 text-sm font-medium text-gray-700"
               >
-                Email <span className="text-red-500">*</span>
+                Email
               </label>
               <input
                 type="email"
                 id="email"
                 name="email"
-                value={formData.email}
+                value={formData.email || ''}
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                required
               />
             </div>
 
@@ -255,51 +308,75 @@ export const UserForm: React.FC = () => {
 
             <div className="mt-6 mb-4">
               <h3 className="text-lg font-medium text-gray-900 mb-4">
-                {isEditMode ? 'Change Password' : 'Set Password'}
+                {isEditMode ? 'PIN Settings' : 'Set PIN'}
               </h3>
+              <p className="text-sm text-gray-600 mb-4">
+                PIN is optional. Users without a PIN can login with just their username.
+              </p>
+
               {isEditMode && (
-                <p className="text-sm text-gray-600 mb-4">
-                  Leave blank to keep the current password
-                </p>
+                <div className="mb-4">
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="removePin"
+                      checked={removePin}
+                      onChange={(e) => {
+                        setRemovePin(e.target.checked);
+                        if (e.target.checked) {
+                          setFormData((prev) => ({ ...prev, pin: '', confirmPin: '' }));
+                        }
+                      }}
+                      className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                    />
+                    <label htmlFor="removePin" className="ml-2 text-sm text-gray-700">
+                      Remove PIN (Allow login without PIN)
+                    </label>
+                  </div>
+                </div>
               )}
 
-              <div className="mb-4">
-                <label
-                  htmlFor="password"
-                  className="block mb-2 text-sm font-medium text-gray-700"
-                >
-                  Password{' '}
-                  {!isEditMode && <span className="text-red-500">*</span>}
-                </label>
-                <input
-                  type="password"
-                  id="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  required={!isEditMode}
-                />
-              </div>
+              {!removePin && (
+                <>
+                  <div className="mb-4">
+                    <label
+                      htmlFor="pin"
+                      className="block mb-2 text-sm font-medium text-gray-700"
+                    >
+                      PIN
+                    </label>
+                    <input
+                      type="password"
+                      id="pin"
+                      name="pin"
+                      value={formData.pin || ''}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      placeholder="4-8 digits"
+                    />
+                    <p className="mt-1 text-sm text-gray-500">
+                      PIN must be 4-8 digits
+                    </p>
+                  </div>
 
-              <div className="mb-4">
-                <label
-                  htmlFor="confirmPassword"
-                  className="block mb-2 text-sm font-medium text-gray-700"
-                >
-                  Confirm Password{' '}
-                  {!isEditMode && <span className="text-red-500">*</span>}
-                </label>
-                <input
-                  type="password"
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  required={!isEditMode}
-                />
-              </div>
+                  <div className="mb-4">
+                    <label
+                      htmlFor="confirmPin"
+                      className="block mb-2 text-sm font-medium text-gray-700"
+                    >
+                      Confirm PIN
+                    </label>
+                    <input
+                      type="password"
+                      id="confirmPin"
+                      name="confirmPin"
+                      value={formData.confirmPin || ''}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    />
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="flex justify-end space-x-3">

@@ -12,21 +12,8 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
-  register: (
-    email: string,
-    password: string,
-    confirmPassword: string,
-    firstName: string,
-    lastName: string,
-  ) => Promise<boolean>;
+  login: (username: string, pin?: string) => Promise<boolean>;
   logout: () => Promise<void>;
-  forgotPassword: (email: string) => Promise<boolean>;
-  resetPassword: (
-    token: string,
-    password: string,
-    confirmPassword: string,
-  ) => Promise<boolean>;
   updateUser: (userData: User) => void;
 }
 
@@ -64,10 +51,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     checkAuthStatus();
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (username: string, pin?: string): Promise<boolean> => {
     setIsLoading(true);
     try {
-      const response = await ApiService.login({ email, password });
+      const response = await ApiService.login({ username, pin });
       if (response.success && response.data) {
         setUser(response.data.user);
         setIsAuthenticated(true);
@@ -78,31 +65,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       return false;
     } catch (error) {
       console.error('Login error:', error);
-      setIsLoading(false);
-      return false;
-    }
-  };
-
-  const register = async (
-    email: string,
-    password: string,
-    confirmPassword: string,
-    firstName: string,
-    lastName: string,
-  ): Promise<boolean> => {
-    setIsLoading(true);
-    try {
-      const response = await ApiService.register({
-        email,
-        password,
-        confirmPassword,
-        firstName,
-        lastName,
-      });
-      setIsLoading(false);
-      return response.success;
-    } catch (error) {
-      console.error('Registration error:', error);
       setIsLoading(false);
       return false;
     }
@@ -121,40 +83,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     }
   };
 
-  const forgotPassword = async (email: string): Promise<boolean> => {
-    setIsLoading(true);
-    try {
-      const response = await ApiService.forgotPassword({ email });
-      setIsLoading(false);
-      return response.success;
-    } catch (error) {
-      console.error('Forgot password error:', error);
-      setIsLoading(false);
-      return false;
-    }
-  };
-
-  const resetPassword = async (
-    token: string,
-    password: string,
-    confirmPassword: string,
-  ): Promise<boolean> => {
-    setIsLoading(true);
-    try {
-      const response = await ApiService.resetPassword({
-        token,
-        password,
-        confirmPassword,
-      });
-      setIsLoading(false);
-      return response.success;
-    } catch (error) {
-      console.error('Reset password error:', error);
-      setIsLoading(false);
-      return false;
-    }
-  };
-
   const updateUser = (userData: User): void => {
     setUser(userData);
   };
@@ -164,10 +92,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     isLoading,
     isAuthenticated,
     login,
-    register,
     logout,
-    forgotPassword,
-    resetPassword,
     updateUser,
   };
 

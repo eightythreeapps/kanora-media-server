@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import * as fs from 'fs';
 import * as path from 'path';
-import ffmpeg from 'fluent-ffmpeg';
+import fluentFfmpeg from 'fluent-ffmpeg';
 import { promisify } from 'util';
 import { exec } from 'child_process';
 import { db } from '../../db/config';
@@ -123,7 +123,7 @@ export class StreamingService {
     res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
 
     // Create ffmpeg command
-    const command = ffmpeg(filePath);
+    const command = fluentFfmpeg(filePath);
 
     // Configure based on format
     switch (format) {

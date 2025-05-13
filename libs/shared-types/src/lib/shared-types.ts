@@ -58,11 +58,11 @@ export interface Photo extends Media {
 
 export interface User {
   id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
+  username: string;
+  email?: string;
   displayName: string;
   role: string;
+  hasPin?: boolean;
   createdAt: string;
   updatedAt: string;
   disabled?: boolean;
@@ -80,18 +80,21 @@ export interface UserListResponse {
 }
 
 export interface CreateUserRequest {
-  email: string;
-  password: string;
+  username: string;
+  email?: string;
   displayName: string;
+  pin?: string;
   role?: string;
 }
 
 export interface UpdateUserRequest {
+  username?: string;
   email?: string;
   displayName?: string;
   role?: string;
   disabled?: boolean;
-  password?: string;
+  pin?: string;
+  removePin?: boolean;
 }
 
 export interface UserPreferences {
@@ -139,26 +142,16 @@ export interface SearchQuery {
 
 // Authentication types
 export interface LoginRequest {
-  email: string;
-  password: string;
+  username: string;
+  pin?: string;
 }
 
-export interface RegisterRequest {
-  email: string;
-  password: string;
-  confirmPassword: string;
-  firstName: string;
-  lastName: string;
-}
-
-export interface ForgotPasswordRequest {
-  email: string;
-}
-
-export interface ResetPasswordRequest {
-  token: string;
-  password: string;
-  confirmPassword: string;
+export interface UpdateProfileRequest {
+  displayName?: string;
+  email?: string;
+  currentPin?: string;
+  newPin?: string;
+  removePin?: boolean;
 }
 
 export interface AuthResponse {

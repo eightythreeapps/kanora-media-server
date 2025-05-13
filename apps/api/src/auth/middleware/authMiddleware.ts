@@ -10,7 +10,7 @@ declare module 'express' {
   interface Request {
     user?: {
       id: string;
-      email: string;
+      username: string;
       role: string;
     };
   }
@@ -68,7 +68,7 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
     // Attach user to request
     req.user = {
       id: decoded.sub,
-      email: decoded.email,
+      username: decoded.username,
       role: decoded.role
     };
 

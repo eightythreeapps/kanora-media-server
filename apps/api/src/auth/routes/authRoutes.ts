@@ -1,10 +1,7 @@
 import express from 'express';
-import { register, login, refreshToken, logout } from '../controllers/authController';
+import { login, refreshToken, logout } from '../controllers/authController';
 
 const router = express.Router();
-
-// POST /auth/register - Register a new user
-router.post('/register', register);
 
 // POST /auth/login - Login a user
 router.post('/login', login);

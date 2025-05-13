@@ -3,7 +3,7 @@ import { db } from '../../db/config';
 import { users, UserRole } from '../../db/schema/users';
 import { eq, and, desc, asc, sql } from 'drizzle-orm';
 import { ApiResponse } from '@kanora/shared-types';
-import { hashPassword, validatePasswordStrength, verifyPassword } from '../../auth/utils/password';
+import { hashPin, validatePin, verifyPin } from '../../auth/utils/pin';
 
 // Default page size for pagination
 const DEFAULT_PAGE_SIZE = 20;
@@ -23,29 +23,31 @@ export async function listUsers(req: Request, res: Response) {
     const offset = (page - 1) * pageSize;
     
     // Define allowed sort fields
-    const allowedSortFields = ['email', 'displayName', 'role', 'createdAt', 'lastLogin', 'disabled'];
+    const allowedSortFields = ['username', 'displayName', 'role', 'createdAt', 'lastLogin', 'disabled'];
     const validSortField = allowedSortFields.includes(sortBy) ? sortBy : 'createdAt';
     
     // Fetch users with pagination
     const usersList = await db
       .select({
         id: users.id,
+        username: users.username,
         email: users.email,
         displayName: users.displayName,
         role: users.role,
+        hasPin: sql<boolean>`${users.pinHash} IS NOT NULL`,
         disabled: users.disabled,
         lastLogin: users.lastLogin,
         createdAt: users.createdAt
       })
       .from(users)
       .orderBy(sortOrder === 'asc' 
-        ? validSortField === 'email' ? asc(users.email)
+        ? validSortField === 'username' ? asc(users.username)
         : validSortField === 'displayName' ? asc(users.displayName)
         : validSortField === 'role' ? asc(users.role)
         : validSortField === 'lastLogin' ? asc(users.lastLogin)
         : validSortField === 'disabled' ? asc(users.disabled)
         : asc(users.createdAt)
-        : validSortField === 'email' ? desc(users.email)
+        : validSortField === 'username' ? desc(users.username)
         : validSortField === 'displayName' ? desc(users.displayName)
         : validSortField === 'role' ? desc(users.role)
         : validSortField === 'lastLogin' ? desc(users.lastLogin)
@@ -92,35 +94,53 @@ export async function listUsers(req: Request, res: Response) {
  */
 export async function createUser(req: Request, res: Response) {
   try {
-    const { email, password, displayName, role } = req.body;
+    const { username, email, displayName, role, pin } = req.body;
     
     // Validate required fields
-    if (!email || !password || !displayName) {
+    if (!username || !displayName) {
       return res.status(400).json({
         success: false,
-        error: 'Email, password, and display name are required',
+        error: 'Username and display name are required',
         timestamp: new Date().toISOString()
       } as ApiResponse<null>);
     }
     
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    // Validate username format (alphanumeric with underscores, no spaces)
+    const usernameRegex = /^[a-zA-Z0-9_]+$/;
+    if (!usernameRegex.test(username)) {
       return res.status(400).json({
         success: false,
-        error: 'Invalid email format',
+        error: 'Username must contain only letters, numbers, and underscores',
         timestamp: new Date().toISOString()
       } as ApiResponse<null>);
     }
     
-    // Validate password strength
-    const passwordValidation = validatePasswordStrength(password);
-    if (!passwordValidation.isValid) {
-      return res.status(400).json({
-        success: false,
-        error: passwordValidation.reason,
-        timestamp: new Date().toISOString()
-      } as ApiResponse<null>);
+    // Validate email format if provided
+    if (email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid email format',
+          timestamp: new Date().toISOString()
+        } as ApiResponse<null>);
+      }
+    }
+    
+    // Validate PIN if provided
+    let pinHash = undefined;
+    if (pin) {
+      const pinValidation = validatePin(pin);
+      if (!pinValidation.isValid) {
+        return res.status(400).json({
+          success: false,
+          error: pinValidation.reason,
+          timestamp: new Date().toISOString()
+        } as ApiResponse<null>);
+      }
+      
+      // Hash the PIN
+      pinHash = await hashPin(pin);
     }
     
     // Validate role if provided
@@ -137,26 +157,24 @@ export async function createUser(req: Request, res: Response) {
     const existingUser = await db
       .select()
       .from(users)
-      .where(eq(users.email, email))
+      .where(eq(users.username, username))
       .get();
     
     if (existingUser) {
       return res.status(409).json({
         success: false,
-        error: 'User with this email already exists',
+        error: 'User with this username already exists',
         timestamp: new Date().toISOString()
       } as ApiResponse<null>);
     }
-    
-    // Hash the password
-    const passwordHash = await hashPassword(password);
     
     // Create the user
     const newUser = await db
       .insert(users)
       .values({
+        username,
         email,
-        passwordHash,
+        pinHash,
         displayName,
         role: userRole
       })
@@ -167,8 +185,10 @@ export async function createUser(req: Request, res: Response) {
       success: true,
       data: {
         id: newUser.id,
+        username: newUser.username,
         email: newUser.email,
         displayName: newUser.displayName,
+        hasPin: !!newUser.pinHash,
         role: newUser.role,
         disabled: newUser.disabled,
         createdAt: newUser.createdAt
@@ -195,9 +215,11 @@ export async function getUserById(req: Request, res: Response) {
     const user = await db
       .select({
         id: users.id,
+        username: users.username,
         email: users.email,
         displayName: users.displayName,
         role: users.role,
+        hasPin: sql<boolean>`${users.pinHash} IS NOT NULL`,
         disabled: users.disabled,
         lastLogin: users.lastLogin,
         createdAt: users.createdAt,
@@ -236,7 +258,7 @@ export async function getUserById(req: Request, res: Response) {
 export async function updateUser(req: Request, res: Response) {
   try {
     const { id } = req.params;
-    const { email, displayName, role, disabled, password } = req.body;
+    const { username, email, displayName, role, disabled, pin, removePin } = req.body;
     
     // Find user
     const existingUser = await db
@@ -253,13 +275,38 @@ export async function updateUser(req: Request, res: Response) {
       } as ApiResponse<null>);
     }
     
-    // Prepare update data
-    const updateData: any = {
-      updatedAt: new Date().toISOString()
-    };
+    // Check if username is being changed and if so, make sure it's unique
+    if (username && username !== existingUser.username) {
+      const usernameRegex = /^[a-zA-Z0-9_]+$/;
+      if (!usernameRegex.test(username)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Username must contain only letters, numbers, and underscores',
+          timestamp: new Date().toISOString()
+        } as ApiResponse<null>);
+      }
+      
+      // Check if username is unique
+      const usernameExists = await db
+        .select()
+        .from(users)
+        .where(and(
+          eq(users.username, username),
+          sql`${users.id} != ${id}`
+        ))
+        .get();
+      
+      if (usernameExists) {
+        return res.status(409).json({
+          success: false,
+          error: 'Username is already taken',
+          timestamp: new Date().toISOString()
+        } as ApiResponse<null>);
+      }
+    }
     
-    // Only update fields that are provided
-    if (email !== undefined) {
+    // Validate email format if provided
+    if (email) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
         return res.status(400).json({
@@ -268,62 +315,51 @@ export async function updateUser(req: Request, res: Response) {
           timestamp: new Date().toISOString()
         } as ApiResponse<null>);
       }
-      
-      // Check if email is already taken by another user
-      if (email !== existingUser.email) {
-        const emailExists = await db
-          .select()
-          .from(users)
-          .where(and(eq(users.email, email), sql`${users.id} != ${id}`))
-          .get();
-        
-        if (emailExists) {
-          return res.status(409).json({
-            success: false,
-            error: 'Email is already taken',
-            timestamp: new Date().toISOString()
-          } as ApiResponse<null>);
-        }
-      }
-      
-      updateData.email = email;
     }
     
-    if (displayName !== undefined) {
-      updateData.displayName = displayName;
+    // Validate role if provided
+    if (role && !Object.values(UserRole).includes(role)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid role',
+        timestamp: new Date().toISOString()
+      } as ApiResponse<null>);
     }
     
-    if (role !== undefined) {
-      if (!Object.values(UserRole).includes(role)) {
+    // Prepare update values
+    const updateValues: any = {
+      updatedAt: new Date().toISOString()
+    };
+    
+    if (username) updateValues.username = username;
+    if (email !== undefined) updateValues.email = email;
+    if (displayName) updateValues.displayName = displayName;
+    if (role) updateValues.role = role;
+    if (disabled !== undefined) updateValues.disabled = disabled;
+    
+    // Handle PIN changes
+    if (pin) {
+      // Validate PIN
+      const pinValidation = validatePin(pin);
+      if (!pinValidation.isValid) {
         return res.status(400).json({
           success: false,
-          error: 'Invalid role',
+          error: pinValidation.reason,
           timestamp: new Date().toISOString()
         } as ApiResponse<null>);
       }
-      updateData.role = role;
+      
+      // Hash the PIN
+      updateValues.pinHash = await hashPin(pin);
+    } else if (removePin) {
+      // Remove PIN
+      updateValues.pinHash = null;
     }
     
-    if (disabled !== undefined) {
-      updateData.disabled = disabled;
-    }
-    
-    if (password !== undefined) {
-      const passwordValidation = validatePasswordStrength(password);
-      if (!passwordValidation.isValid) {
-        return res.status(400).json({
-          success: false,
-          error: passwordValidation.reason,
-          timestamp: new Date().toISOString()
-        } as ApiResponse<null>);
-      }
-      updateData.passwordHash = await hashPassword(password);
-    }
-    
-    // Update user
+    // Update the user
     const updatedUser = await db
       .update(users)
-      .set(updateData)
+      .set(updateValues)
       .where(eq(users.id, id))
       .returning()
       .get();
@@ -332,12 +368,12 @@ export async function updateUser(req: Request, res: Response) {
       success: true,
       data: {
         id: updatedUser.id,
+        username: updatedUser.username,
         email: updatedUser.email,
         displayName: updatedUser.displayName,
+        hasPin: !!updatedUser.pinHash,
         role: updatedUser.role,
         disabled: updatedUser.disabled,
-        lastLogin: updatedUser.lastLogin,
-        createdAt: updatedUser.createdAt,
         updatedAt: updatedUser.updatedAt
       },
       timestamp: new Date().toISOString()
@@ -374,20 +410,36 @@ export async function disableUser(req: Request, res: Response) {
       } as ApiResponse<null>);
     }
     
-    // Update user
-    await db
+    // Prevent disabling your own account
+    if (req.user?.id === id) {
+      return res.status(403).json({
+        success: false,
+        error: 'Cannot disable your own account',
+        timestamp: new Date().toISOString()
+      } as ApiResponse<null>);
+    }
+    
+    // Disable the user
+    const updatedUser = await db
       .update(users)
       .set({
         disabled: true,
         updatedAt: new Date().toISOString()
       })
       .where(eq(users.id, id))
-      .run();
+      .returning()
+      .get();
     
     return res.status(200).json({
       success: true,
       data: {
-        message: 'User disabled successfully'
+        id: updatedUser.id,
+        username: updatedUser.username,
+        email: updatedUser.email,
+        displayName: updatedUser.displayName,
+        role: updatedUser.role,
+        disabled: updatedUser.disabled,
+        updatedAt: updatedUser.updatedAt
       },
       timestamp: new Date().toISOString()
     } as ApiResponse<any>);
@@ -402,26 +454,30 @@ export async function disableUser(req: Request, res: Response) {
 }
 
 /**
- * Get current user profile
+ * Get the current user's profile
  */
 export async function getProfile(req: Request, res: Response) {
   try {
+    // Get user ID from the authenticated request
     const userId = req.user?.id;
     
     if (!userId) {
       return res.status(401).json({
         success: false,
-        error: 'Authentication required',
+        error: 'Unauthorized',
         timestamp: new Date().toISOString()
       } as ApiResponse<null>);
     }
     
-    const user = await db
+    // Fetch the user's profile
+    const userProfile = await db
       .select({
         id: users.id,
+        username: users.username,
         email: users.email,
         displayName: users.displayName,
         role: users.role,
+        hasPin: sql<boolean>`${users.pinHash} IS NOT NULL`,
         lastLogin: users.lastLogin,
         createdAt: users.createdAt
       })
@@ -429,21 +485,21 @@ export async function getProfile(req: Request, res: Response) {
       .where(eq(users.id, userId))
       .get();
     
-    if (!user) {
+    if (!userProfile) {
       return res.status(404).json({
         success: false,
-        error: 'User not found',
+        error: 'User profile not found',
         timestamp: new Date().toISOString()
       } as ApiResponse<null>);
     }
     
     return res.status(200).json({
       success: true,
-      data: user,
+      data: userProfile,
       timestamp: new Date().toISOString()
     } as ApiResponse<any>);
   } catch (error) {
-    console.error('Error getting profile:', error);
+    console.error('Error getting user profile:', error);
     return res.status(500).json({
       success: false,
       error: 'Internal server error',
@@ -453,30 +509,31 @@ export async function getProfile(req: Request, res: Response) {
 }
 
 /**
- * Update current user profile
+ * Update the current user's profile
  */
 export async function updateProfile(req: Request, res: Response) {
   try {
+    // Get user ID from the authenticated request
     const userId = req.user?.id;
     
     if (!userId) {
       return res.status(401).json({
         success: false,
-        error: 'Authentication required',
+        error: 'Unauthorized',
         timestamp: new Date().toISOString()
       } as ApiResponse<null>);
     }
     
-    const { email, displayName, currentPassword, newPassword } = req.body;
+    const { displayName, email, currentPin, newPin, removePin } = req.body;
     
-    // Find user
-    const existingUser = await db
+    // Get the current user
+    const currentUser = await db
       .select()
       .from(users)
       .where(eq(users.id, userId))
       .get();
     
-    if (!existingUser) {
+    if (!currentUser) {
       return res.status(404).json({
         success: false,
         error: 'User not found',
@@ -484,13 +541,18 @@ export async function updateProfile(req: Request, res: Response) {
       } as ApiResponse<null>);
     }
     
-    // Prepare update data
-    const updateData: any = {
+    // Prepare update values
+    const updateValues: any = {
       updatedAt: new Date().toISOString()
     };
     
-    // For email update
-    if (email !== undefined && email !== existingUser.email) {
+    // Update display name if provided
+    if (displayName) {
+      updateValues.displayName = displayName;
+    }
+    
+    // Update email if provided and valid
+    if (email) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
         return res.status(400).json({
@@ -499,74 +561,64 @@ export async function updateProfile(req: Request, res: Response) {
           timestamp: new Date().toISOString()
         } as ApiResponse<null>);
       }
-      
-      // Check if email is already taken
-      const emailExists = await db
-        .select()
-        .from(users)
-        .where(and(eq(users.email, email), sql`${users.id} != ${userId}`))
-        .get();
-      
-      if (emailExists) {
-        return res.status(409).json({
-          success: false,
-          error: 'Email is already taken',
-          timestamp: new Date().toISOString()
-        } as ApiResponse<null>);
-      }
-      
-      updateData.email = email;
+      updateValues.email = email;
     }
     
-    // For display name update
-    if (displayName !== undefined) {
-      updateData.displayName = displayName;
+    // Handle PIN changes
+    if (newPin || removePin) {
+      // If user has a PIN, require the current PIN for verification
+      if (currentUser.pinHash) {
+        if (!currentPin) {
+          return res.status(400).json({
+            success: false,
+            error: 'Current PIN is required',
+            timestamp: new Date().toISOString()
+          } as ApiResponse<null>);
+        }
+        
+        // Verify current PIN
+        const isPinValid = await verifyPin(currentPin, currentUser.pinHash);
+        if (!isPinValid) {
+          return res.status(401).json({
+            success: false,
+            error: 'Invalid current PIN',
+            timestamp: new Date().toISOString()
+          } as ApiResponse<null>);
+        }
+      }
+      
+      if (newPin) {
+        // Validate new PIN
+        const pinValidation = validatePin(newPin);
+        if (!pinValidation.isValid) {
+          return res.status(400).json({
+            success: false,
+            error: pinValidation.reason,
+            timestamp: new Date().toISOString()
+          } as ApiResponse<null>);
+        }
+        
+        // Hash the new PIN
+        updateValues.pinHash = await hashPin(newPin);
+      } else if (removePin) {
+        // Remove PIN
+        updateValues.pinHash = null;
+      }
     }
     
-    // For password update
-    let passwordChanged = false;
-    if (newPassword !== undefined) {
-      // Current password is required for password change
-      if (!currentPassword) {
-        return res.status(400).json({
-          success: false,
-          error: 'Current password is required to change password',
-          timestamp: new Date().toISOString()
-        } as ApiResponse<null>);
-      }
-      
-      // Verify current password
-      const isCurrentPasswordValid = await verifyPassword(
-        currentPassword,
-        existingUser.passwordHash
-      );
-      
-      if (!isCurrentPasswordValid) {
-        return res.status(401).json({
-          success: false,
-          error: 'Current password is incorrect',
-          timestamp: new Date().toISOString()
-        } as ApiResponse<null>);
-      }
-      
-      // Validate new password strength
-      const passwordValidation = validatePasswordStrength(newPassword);
-      if (!passwordValidation.isValid) {
-        return res.status(400).json({
-          success: false,
-          error: passwordValidation.reason,
-          timestamp: new Date().toISOString()
-        } as ApiResponse<null>);
-      }
-      
-      updateData.passwordHash = await hashPassword(newPassword);
-      passwordChanged = true;
+    // Only update if there are changes
+    if (Object.keys(updateValues).length <= 1) { // 1 because updatedAt is always included
+      return res.status(400).json({
+        success: false,
+        error: 'No changes to update',
+        timestamp: new Date().toISOString()
+      } as ApiResponse<null>);
     }
     
-    // Update user
+    // Update the user
     const updatedUser = await db
       .update(users)
-      .set(updateData)
+      .set(updateValues)
       .where(eq(users.id, userId))
       .returning()
       .get();
@@ -575,17 +627,17 @@ export async function updateProfile(req: Request, res: Response) {
       success: true,
       data: {
         id: updatedUser.id,
+        username: updatedUser.username,
         email: updatedUser.email,
         displayName: updatedUser.displayName,
-        passwordChanged,
-        message: passwordChanged
-          ? 'Profile updated successfully. Please login again with your new password.'
-          : 'Profile updated successfully.'
+        hasPin: !!updatedUser.pinHash,
+        role: updatedUser.role,
+        updatedAt: updatedUser.updatedAt
       },
       timestamp: new Date().toISOString()
     } as ApiResponse<any>);
   } catch (error) {
-    console.error('Error updating profile:', error);
+    console.error('Error updating user profile:', error);
     return res.status(500).json({
       success: false,
       error: 'Internal server error',

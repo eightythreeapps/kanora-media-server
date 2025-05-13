@@ -37,6 +37,38 @@
         }
       }
     },
+    "build-auth": {
+      "executor": "@nx/esbuild:esbuild",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "platform": "node",
+        "outputPath": "dist/apps/api-auth",
+        "format": ["cjs"],
+        "bundle": false,
+        "main": "apps/api/src/auth-server.ts",
+        "tsConfig": "apps/api/tsconfig.app.json",
+        "assets": ["apps/api/src/assets"],
+        "generatePackageJson": true,
+        "esbuildOptions": {
+          "sourcemap": true,
+          "outExtension": {
+            ".js": ".js"
+          }
+        }
+      },
+      "configurations": {
+        "development": {},
+        "production": {
+          "esbuildOptions": {
+            "sourcemap": false,
+            "outExtension": {
+              ".js": ".js"
+            }
+          }
+        }
+      }
+    },
     "serve": {
       "continuous": true,
       "executor": "@nx/js:node",
@@ -52,6 +84,24 @@
         },
         "production": {
           "buildTarget": "api:build:production"
+        }
+      }
+    },
+    "serve-auth": {
+      "continuous": true,
+      "executor": "@nx/js:node",
+      "defaultConfiguration": "development",
+      "dependsOn": ["build-auth"],
+      "options": {
+        "buildTarget": "api:build-auth",
+        "runBuildTargetDependencies": false
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "api:build-auth:development"
+        },
+        "production": {
+          "buildTarget": "api:build-auth:production"
         }
       }
     },

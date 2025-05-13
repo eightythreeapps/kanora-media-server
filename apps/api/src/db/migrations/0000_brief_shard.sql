@@ -29,9 +29,10 @@ CREATE TABLE `revoked_tokens` (
 CREATE UNIQUE INDEX `revoked_tokens_jti_unique` ON `revoked_tokens` (`jti`);--> statement-breakpoint
 CREATE TABLE `users` (
 	`id` text PRIMARY KEY NOT NULL,
-	`email` text NOT NULL,
+	`username` text NOT NULL,
+	`email` text,
 	`display_name` text NOT NULL,
-	`password_hash` text NOT NULL,
+	`pin_hash` text,
 	`role` text DEFAULT 'user' NOT NULL,
 	`disabled` integer DEFAULT false NOT NULL,
 	`last_login` text,
@@ -39,7 +40,7 @@ CREATE TABLE `users` (
 	`updated_at` text NOT NULL
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `users_email_unique` ON `users` (`email`);--> statement-breakpoint
+CREATE UNIQUE INDEX `users_username_unique` ON `users` (`username`);--> statement-breakpoint
 CREATE TABLE `tracks` (
 	`id` text PRIMARY KEY NOT NULL,
 	`title` text NOT NULL,
