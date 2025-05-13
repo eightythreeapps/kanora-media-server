@@ -8,7 +8,7 @@ import {
   PaginatedResponse,
 } from '@kanora/shared-types';
 import { env, validateEnv } from './env';
-import { db, runMigrations } from './db/config';
+import { runMigrations } from './db/config';
 import { seedDatabase } from './db/seed';
 import authRoutes from './auth/routes/authRoutes';
 import userRoutes from './users/routes/userRoutes';
@@ -92,26 +92,15 @@ app.get('/', (req, res) => {
   });
 });
 
-// Health check endpoint for monitoring
+// Health check endpoint for monitoring and Docker health checks
 app.get('/health', (req, res) => {
-  // Check database connection
-  try {
-    // Simple health check that doesn't rely on database query
-    // Just checking if the server is running and responding
-    res.json({
-      status: 'healthy',
-      uptime: process.uptime(),
-      timestamp: new Date().toISOString(),
-      version: '0.1.0',
-      environment: env.NODE_ENV,
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: 'unhealthy',
-      error: error instanceof Error ? error.message : 'Unknown error',
-      timestamp: new Date().toISOString(),
-    });
-  }
+  res.json({
+    status: 'healthy',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+    version: '0.1.0',
+    environment: env.NODE_ENV || 'development',
+  });
 });
 
 // Get all media
@@ -196,23 +185,32 @@ app.use(
     next: express.NextFunction,
   ) => {
     console.error(err.stack);
+
     const response: ApiResponse<null> = {
       success: false,
-      error: 'Internal Server Error',
+      error: err.message,
       timestamp: new Date().toISOString(),
     };
+
     res.status(500).json(response);
   },
 );
 
-// Initialize database
+// Initialize the database
 async function initializeDatabase() {
   try {
     // Run database migrations
-    runMigrations();
+    console.log('Running database migrations...');
+    await runMigrations();
+    console.log('Migrations completed.');
 
     // Seed the database with initial data
+    console.log('Seeding database...');
     await seedDatabase();
+    console.log('Database seeded successfully.');
+
+    // Schedule token cleanup job (every 24 hours)
+    setInterval(cleanupRevokedTokens, 24 * 60 * 60 * 1000);
 
     console.log('Database initialized successfully.');
   } catch (error) {
@@ -223,7 +221,6 @@ async function initializeDatabase() {
 
 // Start the server
 async function startServer() {
-  // Initialize database first
   await initializeDatabase();
 
   // Setup periodic cleanup of revoked tokens
@@ -255,7 +252,17 @@ async function startServer() {
   });
 }
 
-// Start the application
+// Handle uncaught exceptions and promise rejections
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Promise Rejection:', reason);
+});
+
+// Start the server
 startServer().catch((error) => {
   console.error('Failed to start server:', error);
   process.exit(1);

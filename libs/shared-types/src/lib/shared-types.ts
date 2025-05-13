@@ -61,8 +61,37 @@ export interface User {
   email: string;
   firstName: string;
   lastName: string;
+  displayName: string;
+  role: string;
   createdAt: string;
   updatedAt: string;
+  disabled?: boolean;
+  lastLogin?: string;
+}
+
+export interface UserListResponse {
+  users: User[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    totalCount: number;
+    totalPages: number;
+  };
+}
+
+export interface CreateUserRequest {
+  email: string;
+  password: string;
+  displayName: string;
+  role?: string;
+}
+
+export interface UpdateUserRequest {
+  email?: string;
+  displayName?: string;
+  role?: string;
+  disabled?: boolean;
+  password?: string;
 }
 
 export interface UserPreferences {

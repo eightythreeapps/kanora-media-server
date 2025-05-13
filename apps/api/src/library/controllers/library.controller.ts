@@ -183,7 +183,7 @@ export const getAlbumById = async (
     const { id } = req.params;
 
     // Get album with artist info
-    const album = await db
+    const albumResults = await db
       .select({
         id: albums.id,
         title: albums.title,
@@ -195,8 +195,9 @@ export const getAlbumById = async (
       })
       .from(albums)
       .leftJoin(artists, eq(albums.artistId, artists.id))
-      .where(eq(albums.id, id))
-      .then((rows) => rows[0]);
+      .where(eq(albums.id, id));
+
+    const album = albumResults[0];
 
     if (!album) {
       res.status(404).json({
@@ -268,7 +269,7 @@ export const getAllTracks = async (
       whereConditions.push(like(tracks.title, `%${q}%`));
     }
 
-    // Start query with join
+    // Start query
     const baseQuery = db
       .select({
         id: tracks.id,
@@ -296,18 +297,16 @@ export const getAllTracks = async (
       query = baseQuery.orderBy(desc(tracks.sortTitle));
     } else if (sort === 'title' && order === 'asc') {
       query = baseQuery.orderBy(tracks.sortTitle);
+    } else if (sort === 'album' && order === 'desc') {
+      query = baseQuery.orderBy(desc(albums.sortTitle));
     } else if (sort === 'album' && order === 'asc') {
       query = baseQuery.orderBy(
         albums.sortTitle,
         tracks.discNumber,
         tracks.trackNumber,
       );
-    } else if (sort === 'album' && order === 'desc') {
-      query = baseQuery.orderBy(
-        desc(albums.sortTitle),
-        desc(tracks.discNumber),
-        desc(tracks.trackNumber),
-      );
+    } else if (sort === 'artist' && order === 'desc') {
+      query = baseQuery.orderBy(desc(artists.sortName));
     } else if (sort === 'artist' && order === 'asc') {
       query = baseQuery.orderBy(
         artists.sortName,
@@ -315,19 +314,16 @@ export const getAllTracks = async (
         tracks.discNumber,
         tracks.trackNumber,
       );
-    } else if (sort === 'artist' && order === 'desc') {
-      query = baseQuery.orderBy(
-        desc(artists.sortName),
-        desc(albums.sortTitle),
-        desc(tracks.discNumber),
-        desc(tracks.trackNumber),
-      );
-    } else if (sort === 'duration' && order === 'asc') {
-      query = baseQuery.orderBy(tracks.duration);
     } else if (sort === 'duration' && order === 'desc') {
       query = baseQuery.orderBy(desc(tracks.duration));
+    } else if (sort === 'duration' && order === 'asc') {
+      query = baseQuery.orderBy(tracks.duration);
     } else {
-      query = baseQuery.orderBy(tracks.sortTitle);
+      query = baseQuery.orderBy(
+        albums.sortTitle,
+        tracks.discNumber,
+        tracks.trackNumber,
+      );
     }
 
     // Apply pagination
@@ -337,20 +333,17 @@ export const getAllTracks = async (
     const tracksList = await paginatedQuery;
 
     // Get total count for pagination
-    const totalCount = await db
-      .select({ count: sql`count(*)` })
-      .from(tracks)
-      .then((rows) => Number(rows[0].count));
+    const countResult = await db.select({ count: sql`count(*)` }).from(tracks);
+    const totalCount = Number(countResult[0].count);
 
     res.status(200).json({
       success: true,
       data: {
-        tracks: tracksList,
-        pagination: {
-          total: totalCount,
-          limit: parsedLimit,
-          offset: parsedOffset,
-        },
+        items: tracksList,
+        page: Math.floor(parsedOffset / parsedLimit) + 1,
+        pageSize: parsedLimit,
+        totalItems: totalCount,
+        totalPages: Math.ceil(totalCount / parsedLimit),
       },
     });
   } catch (error) {
@@ -375,7 +368,7 @@ export const getTrackById = async (
     const { id } = req.params;
 
     // Get track with artist and album info
-    const track = await db
+    const trackResults = await db
       .select({
         id: tracks.id,
         title: tracks.title,
@@ -387,8 +380,9 @@ export const getTrackById = async (
         duration: tracks.duration,
         path: tracks.path,
         format: tracks.format,
-        bitrate: tracks.bitrate,
         fileSize: tracks.fileSize,
+        bitrate: tracks.bitrate,
+        contentHash: tracks.contentHash,
         artistName: artists.name,
         albumTitle: albums.title,
         year: albums.year,
@@ -397,8 +391,9 @@ export const getTrackById = async (
       .from(tracks)
       .leftJoin(artists, eq(tracks.artistId, artists.id))
       .leftJoin(albums, eq(tracks.albumId, albums.id))
-      .where(eq(tracks.id, id))
-      .then((rows) => rows[0]);
+      .where(eq(tracks.id, id));
+
+    const track = trackResults[0];
 
     if (!track) {
       res.status(404).json({

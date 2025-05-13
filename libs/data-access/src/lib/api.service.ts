@@ -10,6 +10,9 @@ import {
   ResetPasswordRequest,
   AuthResponse,
   User,
+  UserListResponse,
+  CreateUserRequest,
+  UpdateUserRequest,
 } from '@kanora/shared-types';
 
 // Create axios instance with base configuration
@@ -91,7 +94,20 @@ export class ApiService {
 
   static async getCurrentUser(): Promise<ApiResponse<User>> {
     try {
-      const response = await apiClient.get<ApiResponse<User>>('/api/users/me');
+      const response = await apiClient.get<ApiResponse<User>>('/api/me');
+      return response.data;
+    } catch (error) {
+      return this.handleError<User>(error);
+    }
+  }
+
+  static async updateProfile(data: {
+    displayName?: string;
+    currentPassword?: string;
+    newPassword?: string;
+  }): Promise<ApiResponse<User>> {
+    try {
+      const response = await apiClient.put<ApiResponse<User>>('/api/me', data);
       return response.data;
     } catch (error) {
       return this.handleError<User>(error);
@@ -108,6 +124,72 @@ export class ApiService {
       // Still remove tokens on error
       localStorage.removeItem('auth_token');
       localStorage.removeItem('refresh_token');
+      return this.handleError<null>(error);
+    }
+  }
+
+  // Admin user management endpoints
+  static async listUsers(
+    page = 1,
+    pageSize = 20,
+    sortBy = 'createdAt',
+    sortOrder = 'desc',
+  ): Promise<ApiResponse<UserListResponse>> {
+    try {
+      const response = await apiClient.get<ApiResponse<UserListResponse>>(
+        `/api/users?page=${page}&pageSize=${pageSize}&sortBy=${sortBy}&sortOrder=${sortOrder}`,
+      );
+      return response.data;
+    } catch (error) {
+      return this.handleError<UserListResponse>(error);
+    }
+  }
+
+  static async createUser(data: CreateUserRequest): Promise<ApiResponse<User>> {
+    try {
+      const response = await apiClient.post<ApiResponse<User>>(
+        '/api/users',
+        data,
+      );
+      return response.data;
+    } catch (error) {
+      return this.handleError<User>(error);
+    }
+  }
+
+  static async getUserById(id: string): Promise<ApiResponse<User>> {
+    try {
+      const response = await apiClient.get<ApiResponse<User>>(
+        `/api/users/${id}`,
+      );
+      return response.data;
+    } catch (error) {
+      return this.handleError<User>(error);
+    }
+  }
+
+  static async updateUser(
+    id: string,
+    data: UpdateUserRequest,
+  ): Promise<ApiResponse<User>> {
+    try {
+      const response = await apiClient.put<ApiResponse<User>>(
+        `/api/users/${id}`,
+        data,
+      );
+      return response.data;
+    } catch (error) {
+      return this.handleError<User>(error);
+    }
+  }
+
+  static async disableUser(id: string): Promise<ApiResponse<null>> {
+    try {
+      const response = await apiClient.delete<ApiResponse<null>>(
+        `/api/users/${id}`,
+      );
+      return response.data;
+    } catch (error) {
       return this.handleError<null>(error);
     }
   }
