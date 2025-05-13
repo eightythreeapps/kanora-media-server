@@ -29,7 +29,7 @@ app.use('/api', userRoutes);
 // API routes
 app.get('/', (req, res) => {
   res.json({
-    name: 'Kanora Media Server API',
+    name: 'Kanora Media Server API (Auth Only)',
     version: '0.1.0',
     timestamp: new Date().toISOString(),
   });
@@ -42,8 +42,18 @@ app.get('/health', (req, res) => {
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
     version: '0.1.0',
-    environment: process.env.NODE_ENV || 'development',
+    environment: env.NODE_ENV,
   });
+});
+
+// Mock media endpoint to make the UI happy
+app.get('/api/media', (req, res) => {
+  const response: ApiResponse<[]> = {
+    success: true,
+    data: [],
+    timestamp: new Date().toISOString(),
+  };
+  res.json(response);
 });
 
 // Error handling middleware
@@ -55,32 +65,23 @@ app.use(
     next: express.NextFunction,
   ) => {
     console.error(err.stack);
-
     const response: ApiResponse<null> = {
       success: false,
-      error: err.message,
+      error: 'Internal Server Error',
       timestamp: new Date().toISOString(),
     };
-
     res.status(500).json(response);
   },
 );
 
-// Initialize the database
+// Initialize database
 async function initializeDatabase() {
   try {
     // Run database migrations
-    console.log('Running database migrations...');
-    await runMigrations();
-    console.log('Migrations completed.');
+    runMigrations();
 
-    // Seed the database with initial data if needed
-    console.log('Seeding database...');
+    // Seed the database with initial data
     await seedDatabase();
-    console.log('Database seeded successfully.');
-
-    // Schedule token cleanup job (every 24 hours)
-    setInterval(cleanupRevokedTokens, 24 * 60 * 60 * 1000);
 
     console.log('Database initialized successfully.');
   } catch (error) {
@@ -89,32 +90,31 @@ async function initializeDatabase() {
   }
 }
 
-// Start the server
 async function startServer() {
-  await initializeDatabase();
+  try {
+    // First initialize the database
+    await initializeDatabase();
 
-  const port = env.PORT || 3333;
+    // Periodically clean up revoked tokens (every hour)
+    setInterval(cleanupRevokedTokens, 60 * 60 * 1000);
 
-  app.listen(port, () => {
-    console.log(
-      `Kanora Media Server API is listening at http://localhost:${port}`,
-    );
-    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  });
+    // Start the server
+    const port = env.PORT || 3333;
+    app.listen(port, () => {
+      console.log(
+        `Kanora Auth Server API is listening at http://localhost:${port}`,
+      );
+      console.log(`Environment: ${env.NODE_ENV}`);
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
 }
 
-// Handle uncaught exceptions and promise rejections
-process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error);
-  process.exit(1);
-});
+// Only start the server if this file is run directly
+if (require.main === module) {
+  startServer();
+}
 
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Promise Rejection:', reason);
-});
-
-// Start the server
-startServer().catch((error) => {
-  console.error('Failed to start server:', error);
-  process.exit(1);
-});
+export default app;
