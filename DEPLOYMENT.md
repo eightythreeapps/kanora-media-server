@@ -4,417 +4,161 @@ This guide explains how to deploy Kanora Media Server using various methods.
 
 ## Table of Contents
 
-- [Local Docker Deployment](#local-docker-deployment)
-- [Production Deployment Options](#production-deployment-options)
-- [Cloud Deployment](#cloud-deployment)
-- [Scaling Considerations](#scaling-considerations)
+- [Desktop Application Deployment](#desktop-application-deployment)
+- [Development Environment](#development-environment)
 - [Monitoring and Observability](#monitoring-and-observability)
 - [Backup and Recovery](#backup-and-recovery)
 - [Troubleshooting](#troubleshooting)
 
-## Local Docker Deployment
+## Desktop Application Deployment
+
+Kanora Media Server is designed to be deployed as a desktop application using Electron, which wraps both the API server and web interface into a single installable package.
+
+### How It Works
+
+The Electron app:
+
+1. Starts the Node.js API server in a background process
+2. Opens a window that displays the web interface
+3. Manages application startup, shutdown, and system integration
+4. Provides access to local file system for media files
+
+### Installation
+
+#### Prerequisites
+
+- Windows, macOS, or Linux operating system
+- Sufficient disk space for your media library
+- No additional server or database software required
+
+#### Installation Steps
+
+1. Download the appropriate installer for your operating system:
+
+   - Windows: `Kanora-Setup-x.x.x.exe`
+   - macOS: `Kanora-x.x.x.dmg`
+   - Linux: `Kanora-x.x.x.AppImage` or distribution-specific package
+
+2. Run the installer and follow the on-screen instructions.
+
+3. Launch the Kanora application from your applications menu or desktop shortcut.
+
+4. On first launch, configure your media library locations.
+
+### Configuration
+
+Kanora's settings are accessible through the application interface:
+
+1. Music library location: Where your organized music collection is stored
+2. Music inbox location: Where new music is placed for processing
+3. Other application settings like port numbers and startup preferences
+
+Settings are automatically saved to the application's configuration storage.
+
+## Development Environment
 
 ### Prerequisites
 
-- [Docker](https://docs.docker.com/get-docker/) (version 20.10 or later)
-- [Docker Compose](https://docs.docker.com/compose/install/) (version 2.0 or later)
+- Node.js (version 20.19.0 or later)
+- npm (version 9 or later)
+- Nx CLI
 
-### Quick Start
-
-The simplest way to deploy Kanora Media Server is using Docker Compose:
+### Setup
 
 ```bash
 # Clone the repository
 git clone https://github.com/eightythreeapps/kanora-media-server.git
 cd kanora-media-server
 
-# Create a .env file for Docker (copy from the example and modify as needed)
-cp apps/api/src/env.example .env
+# Install dependencies
+npm install
 
-# Start the containers
-docker compose up -d
+# Start the development server for the API
+npx nx serve api
+
+# In another terminal, start the development server for the web interface
+npx nx serve web
 ```
 
-Your Kanora Media Server will be available at http://localhost:3333.
+### Building the Electron App
 
-### Using Makefile Commands
-
-We provide a Makefile to simplify Docker operations:
+To build the Electron desktop application during development:
 
 ```bash
-# Build the images
-make build
+# Build the API and web applications
+npx nx run-many -t build --projects=api,web
 
-# Start the containers in detached mode
-make up
-
-# Start the containers in foreground mode (with logs)
-make dev
-
-# View logs
-make logs
-
-# Stop containers
-make down
-
-# Seed the database with initial data
-make seed
-
-# Clean up resources
-make clean
+# Build and run the Electron app
+npx nx serve desktop
 ```
 
 ### Environment Configuration
 
-You can customize your deployment by editing the `.env` file. Here are the important variables:
+Development environment variables can be configured in `.env` files:
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `PORT` | The port the API server listens on | `3333` |
-| `DB_PATH` | Path to the SQLite database file | `/data/kanora.db` |
-| `JWT_SECRET` | Secret key for JWT access tokens | `change_this_in_production` |
-| `JWT_REFRESH_SECRET` | Secret key for JWT refresh tokens | `change_this_too_in_production` |
-| `MUSIC_INBOX_PATH` | Path to the music inbox directory | `/data/music/inbox` |
-| `MUSIC_LIBRARY_PATH` | Path to the music library directory | `/data/music/library` |
-
-### Volume Configuration
-
-The Docker Compose setup uses volumes to persist data:
-
-- `kanora-data`: Stores the SQLite database
-- Host volumes for music: Maps the host machine's directories to the container's music directories
-
-You can customize the music paths in the `.env` file:
-
-```
-MUSIC_INBOX_PATH=/path/to/your/music/inbox
-MUSIC_LIBRARY_PATH=/path/to/your/music/library
-```
-
-## Production Deployment Options
-
-When deploying to production, consider the following:
-
-### Self-Hosted Deployment
-
-1. **Security**:
-   - Change the JWT secret keys to strong, random values
-   - Use a reverse proxy (like Nginx or Traefik) to add HTTPS
-   - Consider using Let's Encrypt for free SSL certificates
-   - Implement proper firewall rules
-
-2. **Data Persistence**:
-   - Use named volumes or host volumes for data persistence
-   - Implement a backup strategy for the database and music files
-
-3. **Resource Limits**:
-   - Configure Docker container resource limits based on your server capacity
-   - Example:
-     ```yaml
-     services:
-       api:
-         # Other config...
-         deploy:
-           resources:
-             limits:
-               cpus: '1.0'
-               memory: 1G
-     ```
-
-4. **Reverse Proxy Configuration**:
-
-   Example Nginx configuration:
-   ```nginx
-   server {
-       listen 80;
-       server_name music.yourdomain.com;
-       
-       # Redirect to HTTPS
-       location / {
-           return 301 https://$host$request_uri;
-       }
-   }
-
-   server {
-       listen 443 ssl;
-       server_name music.yourdomain.com;
-
-       ssl_certificate /path/to/cert.pem;
-       ssl_certificate_key /path/to/key.pem;
-
-       # API proxy
-       location /api/ {
-           proxy_pass http://localhost:3333/api/;
-           proxy_http_version 1.1;
-           proxy_set_header Upgrade $http_upgrade;
-           proxy_set_header Connection 'upgrade';
-           proxy_set_header Host $host;
-           proxy_cache_bypass $http_upgrade;
-       }
-
-       # Web client (when implemented)
-       location / {
-           proxy_pass http://localhost:4200/;
-           proxy_http_version 1.1;
-           proxy_set_header Upgrade $http_upgrade;
-           proxy_set_header Connection 'upgrade';
-           proxy_set_header Host $host;
-           proxy_cache_bypass $http_upgrade;
-       }
-   }
-   ```
-
-## Cloud Deployment
-
-### Docker Registry
-
-The Kanora Media Server images are published to GitHub Container Registry. You can use them directly:
-
-```bash
-docker pull ghcr.io/eightythreeapps/kanora-media-server/api:latest
-```
-
-### Deploying to AWS
-
-1. **Using EC2**:
-   - Launch an EC2 instance with Docker installed
-   - Clone the repository and run the Docker Compose setup as described above
-   - Use an Elastic IP for a static address
-   - Configure security groups to expose only necessary ports
-
-2. **Using ECS (Elastic Container Service)**:
-   - Create an ECS cluster
-   - Define a task definition using the Kanora API container
-   - Set up an ECS service to run the task
-   - Use EFS (Elastic File System) for persistent storage
-   - Add an Application Load Balancer for HTTPS termination
-
-   Example `ecs-task-definition.json`:
-   ```json
-   {
-     "family": "kanora-api",
-     "executionRoleArn": "arn:aws:iam::account-id:role/ecsTaskExecutionRole",
-     "networkMode": "awsvpc",
-     "containerDefinitions": [
-       {
-         "name": "kanora-api",
-         "image": "ghcr.io/eightythreeapps/kanora-media-server/api:latest",
-         "essential": true,
-         "portMappings": [
-           {
-             "containerPort": 3333,
-             "hostPort": 3333,
-             "protocol": "tcp"
-           }
-         ],
-         "environment": [
-           { "name": "NODE_ENV", "value": "production" },
-           { "name": "PORT", "value": "3333" }
-         ],
-         "secrets": [
-           { "name": "JWT_SECRET", "valueFrom": "arn:aws:ssm:region:account-id:parameter/kanora/jwt-secret" }
-         ],
-         "mountPoints": [
-           {
-             "sourceVolume": "kanora-data",
-             "containerPath": "/data",
-             "readOnly": false
-           }
-         ],
-         "logConfiguration": {
-           "logDriver": "awslogs",
-           "options": {
-             "awslogs-group": "/ecs/kanora-api",
-             "awslogs-region": "us-west-2",
-             "awslogs-stream-prefix": "ecs"
-           }
-         }
-       }
-     ],
-     "volumes": [
-       {
-         "name": "kanora-data",
-         "efsVolumeConfiguration": {
-           "fileSystemId": "fs-1234567",
-           "rootDirectory": "/"
-         }
-       }
-     ],
-     "requiresCompatibilities": ["FARGATE"],
-     "cpu": "256",
-     "memory": "512"
-   }
-   ```
-
-### Deploying to Google Cloud
-
-1. **Using GCE (Google Compute Engine)**:
-   - Create a VM instance with Docker installed
-   - Follow the standard Docker Compose deployment steps
-
-2. **Using GKE (Google Kubernetes Engine)**:
-   - Create a GKE cluster
-   - Deploy the Kanora API using Kubernetes manifests
-   - Use Persistent Volumes for data storage
-
-   Example Kubernetes deployment:
-   ```yaml
-   apiVersion: apps/v1
-   kind: Deployment
-   metadata:
-     name: kanora-api
-   spec:
-     replicas: 1
-     selector:
-       matchLabels:
-         app: kanora-api
-     template:
-       metadata:
-         labels:
-           app: kanora-api
-       spec:
-         containers:
-         - name: kanora-api
-           image: ghcr.io/eightythreeapps/kanora-media-server/api:latest
-           ports:
-           - containerPort: 3333
-           env:
-           - name: NODE_ENV
-             value: "production"
-           volumeMounts:
-           - name: kanora-data
-             mountPath: /data
-         volumes:
-         - name: kanora-data
-           persistentVolumeClaim:
-             claimName: kanora-data-pvc
-   ```
-
-## Scaling Considerations
-
-Kanora Media Server uses SQLite for its database, which has limitations for horizontal scaling. Consider the following:
-
-### Vertical Scaling
-
-- Increase CPU and memory resources for the container
-- Use faster storage for the database and media files
-
-### Distributed Setup
-
-For larger deployments, consider:
-- Separating the database into a dedicated service (e.g., PostgreSQL)
-- Using a distributed file system or object storage for media files
-- Implementing a caching layer with Redis
-- Setting up a load balancer for multiple API instances
+| Variable             | Description                         | Default                         |
+| -------------------- | ----------------------------------- | ------------------------------- |
+| `PORT`               | The port the API server listens on  | `3333`                          |
+| `DB_PATH`            | Path to the SQLite database file    | `./data/kanora.db`              |
+| `JWT_SECRET`         | Secret key for JWT access tokens    | `change_this_in_production`     |
+| `JWT_REFRESH_SECRET` | Secret key for JWT refresh tokens   | `change_this_too_in_production` |
+| `MUSIC_INBOX_PATH`   | Path to the music inbox directory   | `./data/music/inbox`            |
+| `MUSIC_LIBRARY_PATH` | Path to the music library directory | `./data/music/library`          |
 
 ## Monitoring and Observability
 
-For production deployments, implement:
+### Application Logs
 
-### Health Checks
+Logs are written to the following locations:
 
-In your Docker Compose file:
-```yaml
-services:
-  api:
-    # Other config...
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3333/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-```
+- Windows: `%APPDATA%\Kanora\logs\`
+- macOS: `~/Library/Logs/Kanora/`
+- Linux: `~/.config/Kanora/logs/`
 
-### Monitoring Tools
+### Performance Metrics
 
-- Use Docker's built-in health checks
-- Integrate with a monitoring system like Prometheus and Grafana
-- Set up log aggregation with tools like ELK stack or Loki
-- Consider using application performance monitoring (APM) solutions
+The desktop application includes built-in performance monitoring accessible via:
 
-### Alerting
-
-- Set up alerts for critical events:
-  - Service downtime
-  - High resource usage
-  - Error rate spikes
-  - Disk space running low
+1. Open the application
+2. Go to Settings > Advanced > Performance Metrics
 
 ## Backup and Recovery
 
-Implement a robust backup strategy:
+### Database Backup
 
-1. **Database Backups**:
-   ```bash
-   # Create a backup script
-   docker compose exec api sh -c "sqlite3 /data/kanora.db .dump > /data/backup/kanora-$(date +%Y%m%d).sql"
-   ```
+The SQLite database can be backed up by copying the database file. Default locations:
 
-2. **Media Backups**:
-   - Regularly back up the music library to external storage
-   - Consider incremental backups for large libraries
+- Windows: `%APPDATA%\Kanora\data\kanora.db`
+- macOS: `~/Library/Application Support/Kanora/data/kanora.db`
+- Linux: `~/.config/Kanora/data/kanora.db`
 
-3. **Automated Backup Schedule**:
-   - Use cron jobs to schedule regular backups
-   - Implement retention policies for old backups
+### Configuration Backup
 
-4. **Recovery Testing**:
-   - Periodically test restoring from backups
-   - Document the recovery procedure
+Application settings are stored in:
 
-## Updating
-
-To update to a new version:
-
-```bash
-# Pull the latest code
-git pull
-
-# Rebuild and restart containers
-docker compose up -d --build
-```
-
-For production updates, consider:
-- Testing updates in a staging environment first
-- Using blue-green deployment strategies
-- Having a rollback plan
+- Windows: `%APPDATA%\Kanora\config.json`
+- macOS: `~/Library/Application Support/Kanora/config.json`
+- Linux: `~/.config/Kanora/config.json`
 
 ## Troubleshooting
 
-### Container won't start
+### Common Issues
 
-Check the logs:
-```bash
-docker compose logs api
-```
+#### Application Won't Start
 
-### Database migration issues
+1. Check system logs for errors
+2. Verify the database file isn't corrupted
+3. Ensure you have read/write permissions to the application directories
 
-You can run migrations manually:
-```bash
-docker compose exec api node /app/migrate.js
-```
+#### Media Files Not Found
 
-### Data permissions issues
+1. Verify the media paths in the application settings
+2. Check file permissions on the media directories
+3. Restart the media scanning process
 
-Make sure your host directories have the correct permissions:
-```bash
-# Create directories if they don't exist
-mkdir -p ./data/music/inbox ./data/music/library
+### Support
 
-# Set permissions (adjust user/group as needed)
-chmod -R 777 ./data
-```
+For additional support:
 
-### Network connectivity issues
-
-Check that ports are correctly published:
-```bash
-docker compose ps
-```
-
-Verify that no other services are using the same ports:
-```bash
-netstat -tulpn | grep 3333
-``` 
+- GitHub Issues: [Kanora Issues](https://github.com/eightythreeapps/kanora-media-server/issues)
+- Documentation: [Kanora Wiki](https://github.com/eightythreeapps/kanora-media-server/wiki)

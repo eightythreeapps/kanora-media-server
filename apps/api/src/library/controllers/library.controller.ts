@@ -3,7 +3,7 @@ import { db } from '../../db/config';
 import { artists } from '../../db/schema/artists';
 import { albums } from '../../db/schema/albums';
 import { tracks } from '../../db/schema/tracks';
-import { eq, like, sql, desc } from 'drizzle-orm';
+import { eq, like, sql, desc, and } from 'drizzle-orm';
 
 /**
  * Get all artists
@@ -15,14 +15,27 @@ export const getAllArtists = async (
   try {
     const { q, sort = 'name', order = 'asc' } = req.query;
 
-    const searchCondition =
-      q && typeof q === 'string' ? like(artists.name, `%${q}%`) : undefined;
+    // Build where conditions
+    const whereConditions = [];
 
-    const artistsList = await db
+    if (q && typeof q === 'string') {
+      whereConditions.push(like(artists.name, `%${q}%`));
+    }
+
+    // Start query
+    const query = db
       .select()
       .from(artists)
-      .where(searchCondition)
-      .orderBy(order === 'asc' ? artists.sortName : desc(artists.sortName));
+      .where(whereConditions.length ? and(...whereConditions) : undefined);
+
+    // Apply sorting
+    const finalQuery =
+      sort === 'name' && order === 'desc'
+        ? query.orderBy(desc(artists.sortName))
+        : query.orderBy(artists.sortName);
+
+    // Execute query
+    const artistsList = await finalQuery;
 
     res.status(200).json({
       success: true,
@@ -97,8 +110,19 @@ export const getAllAlbums = async (
   try {
     const { q, artist, sort = 'title', order = 'asc' } = req.query;
 
-    // This is a simplified version without complex chaining
-    const albumQuery = db
+    // Build where conditions
+    const whereConditions = [];
+
+    if (artist && typeof artist === 'string') {
+      whereConditions.push(eq(albums.artistId, artist));
+    }
+
+    if (q && typeof q === 'string') {
+      whereConditions.push(like(albums.title, `%${q}%`));
+    }
+
+    // Start query with join
+    const baseQuery = db
       .select({
         id: albums.id,
         title: albums.title,
@@ -109,10 +133,29 @@ export const getAllAlbums = async (
         artistName: artists.name,
       })
       .from(albums)
-      .leftJoin(artists, eq(albums.artistId, artists.id));
+      .leftJoin(artists, eq(albums.artistId, artists.id))
+      .where(whereConditions.length ? and(...whereConditions) : undefined);
 
-    // Simple album list for the UI
-    const albumsList = await albumQuery;
+    // Apply sorting
+    let query;
+    if (sort === 'title' && order === 'desc') {
+      query = baseQuery.orderBy(desc(albums.sortTitle));
+    } else if (sort === 'title' && order === 'asc') {
+      query = baseQuery.orderBy(albums.sortTitle);
+    } else if (sort === 'year' && order === 'desc') {
+      query = baseQuery.orderBy(desc(albums.year));
+    } else if (sort === 'year' && order === 'asc') {
+      query = baseQuery.orderBy(albums.year);
+    } else if (sort === 'artist' && order === 'desc') {
+      query = baseQuery.orderBy(desc(artists.sortName));
+    } else if (sort === 'artist' && order === 'asc') {
+      query = baseQuery.orderBy(artists.sortName);
+    } else {
+      query = baseQuery.orderBy(albums.sortTitle);
+    }
+
+    // Execute query
+    const albumsList = await query;
 
     res.status(200).json({
       success: true,
@@ -197,28 +240,97 @@ export const getAllTracks = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const { limit = '100', offset = '0' } = req.query;
+    const {
+      q,
+      artist,
+      album,
+      sort = 'title',
+      order = 'asc',
+      limit = '100',
+      offset = '0',
+    } = req.query;
 
     // Parse limit and offset
     const parsedLimit = Math.min(parseInt(limit as string) || 100, 1000);
     const parsedOffset = parseInt(offset as string) || 0;
 
-    // Simple query to return tracks without complex filtering or sorting
-    // This is a simplified version to avoid the Drizzle ORM type issues
-    const trackQuery = db
+    // Build where conditions
+    const whereConditions = [];
+
+    if (artist && typeof artist === 'string') {
+      whereConditions.push(eq(tracks.artistId, artist));
+    }
+
+    if (album && typeof album === 'string') {
+      whereConditions.push(eq(tracks.albumId, album));
+    }
+
+    if (q && typeof q === 'string') {
+      whereConditions.push(like(tracks.title, `%${q}%`));
+    }
+
+    // Start query
+    const baseQuery = db
       .select({
         id: tracks.id,
         title: tracks.title,
+        sortTitle: tracks.sortTitle,
+        artistId: tracks.artistId,
+        albumId: tracks.albumId,
+        trackNumber: tracks.trackNumber,
+        discNumber: tracks.discNumber,
+        duration: tracks.duration,
+        format: tracks.format,
+        bitrate: tracks.bitrate,
         artistName: artists.name,
         albumTitle: albums.title,
+        year: albums.year,
       })
       .from(tracks)
       .leftJoin(artists, eq(tracks.artistId, artists.id))
       .leftJoin(albums, eq(tracks.albumId, albums.id))
-      .limit(parsedLimit)
-      .offset(parsedOffset);
+      .where(whereConditions.length ? and(...whereConditions) : undefined);
 
-    const tracksList = await trackQuery;
+    // Apply sorting
+    let query;
+    if (sort === 'title' && order === 'desc') {
+      query = baseQuery.orderBy(desc(tracks.sortTitle));
+    } else if (sort === 'title' && order === 'asc') {
+      query = baseQuery.orderBy(tracks.sortTitle);
+    } else if (sort === 'album' && order === 'desc') {
+      query = baseQuery.orderBy(desc(albums.sortTitle));
+    } else if (sort === 'album' && order === 'asc') {
+      query = baseQuery.orderBy(
+        albums.sortTitle,
+        tracks.discNumber,
+        tracks.trackNumber,
+      );
+    } else if (sort === 'artist' && order === 'desc') {
+      query = baseQuery.orderBy(desc(artists.sortName));
+    } else if (sort === 'artist' && order === 'asc') {
+      query = baseQuery.orderBy(
+        artists.sortName,
+        albums.sortTitle,
+        tracks.discNumber,
+        tracks.trackNumber,
+      );
+    } else if (sort === 'duration' && order === 'desc') {
+      query = baseQuery.orderBy(desc(tracks.duration));
+    } else if (sort === 'duration' && order === 'asc') {
+      query = baseQuery.orderBy(tracks.duration);
+    } else {
+      query = baseQuery.orderBy(
+        albums.sortTitle,
+        tracks.discNumber,
+        tracks.trackNumber,
+      );
+    }
+
+    // Apply pagination
+    const paginatedQuery = query.limit(parsedLimit).offset(parsedOffset);
+
+    // Execute query
+    const tracksList = await paginatedQuery;
 
     // Get total count for pagination
     const countResult = await db.select({ count: sql`count(*)` }).from(tracks);
@@ -227,12 +339,11 @@ export const getAllTracks = async (
     res.status(200).json({
       success: true,
       data: {
-        tracks: tracksList,
-        pagination: {
-          total: totalCount,
-          limit: parsedLimit,
-          offset: parsedOffset,
-        },
+        items: tracksList,
+        page: Math.floor(parsedOffset / parsedLimit) + 1,
+        pageSize: parsedLimit,
+        totalItems: totalCount,
+        totalPages: Math.ceil(totalCount / parsedLimit),
       },
     });
   } catch (error) {
@@ -269,8 +380,9 @@ export const getTrackById = async (
         duration: tracks.duration,
         path: tracks.path,
         format: tracks.format,
-        bitrate: tracks.bitrate,
         fileSize: tracks.fileSize,
+        bitrate: tracks.bitrate,
+        contentHash: tracks.contentHash,
         artistName: artists.name,
         albumTitle: albums.title,
         year: albums.year,

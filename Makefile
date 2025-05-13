@@ -1,57 +1,56 @@
-.PHONY: build-api build up down restart logs clean dev seed
+# Makefile for Kanora Media Server
 
-# Build the API
-build-api:
-	npm run build api
+.PHONY: dev build serve test lint help clean electron electron-dev electron-build
 
-# Build the Docker images
-build: build-api
-	docker compose build
+# Development
+dev: ## Start all development servers
+	npx nx run-many -t serve --parallel --max-parallel=2 --projects=api,web
 
-# Start the Docker containers in detached mode
-up: build
-	docker compose up -d
+# Build
+build: ## Build all apps
+	npx nx run-many -t build --parallel --projects=api,web
 
-# Start the Docker containers in foreground mode (useful for development)
-dev: build
-	docker compose up
+serve: ## Serve the API
+	npx nx serve api
 
-# Stop the Docker containers
-down:
-	docker compose down
+# Testing
+test: ## Run all tests
+	npx nx run-many -t test --parallel --projects=api,web,shared-types,data-access,ui
 
-# Restart the containers
-restart:
-	docker compose restart
+test-watch: ## Run tests in watch mode
+	npx nx run-many -t test --parallel --watch --projects=api,web,shared-types,data-access,ui
 
-# Show container logs
-logs:
-	docker compose logs -f
+e2e: ## Run e2e tests
+	npx nx run-many -t e2e --parallel --projects=api-e2e,web-e2e
 
-# Seed the database
-seed:
-	docker compose exec api node /app/seed.js
+# Code quality
+lint: ## Lint all projects
+	npx nx run-many -t lint --parallel --projects=api,web,shared-types,data-access,ui
 
-# Clean up Docker resources
-clean:
-	docker compose down --volumes --remove-orphans
-	docker system prune -f
+lint-fix: ## Fix linting issues
+	npx nx run-many -t lint --parallel --fix --projects=api,web,shared-types,data-access,ui
 
-# Show this help message
-help:
-	@echo "Usage: make [target]"
-	@echo ""
-	@echo "Targets:"
-	@echo "  build-api Build just the API"
-	@echo "  build     Build the Docker images (includes building API)"
-	@echo "  up        Start the Docker containers in detached mode"
-	@echo "  dev       Start the Docker containers in foreground mode"
-	@echo "  down      Stop the Docker containers"
-	@echo "  restart   Restart the containers"
-	@echo "  logs      Show container logs"
-	@echo "  seed      Seed the database"
-	@echo "  clean     Clean up Docker resources"
-	@echo "  help      Show this help message"
+format: ## Format code
+	npx nx format:write
 
-# Default target
+# Electron packaging
+electron-dev: ## Start Electron app in development mode
+	npx nx serve desktop
+
+electron-build: ## Build Electron app for current platform
+	npx nx build desktop
+
+electron-build-all: ## Build Electron app for all platforms
+	npx nx run desktop:build:production --all
+
+# Utility
+clean: ## Clean up generated files
+	npx nx reset
+	rm -rf dist tmp
+
+# Help
+help: ## Display this help
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
+
+# Default
 .DEFAULT_GOAL := help 
