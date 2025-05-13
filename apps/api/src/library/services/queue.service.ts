@@ -1,4 +1,3 @@
-import { Queue, Worker, Job } from 'bullmq';
 import { env } from '../../env';
 import path from 'path';
 import os from 'os';
@@ -24,85 +23,106 @@ export interface ImportFileJobData {
   filePath: string;
 }
 
-// Queue configuration
-const QUEUE_NAME = 'library';
-const DEFAULT_CONCURRENCY = 1;
+// Job interface
+interface Job {
+  id: string;
+  type: JobType;
+  data: ScanLibraryJobData | ImportFileJobData;
+  attempts: number;
+  maxAttempts: number;
+}
 
-// Create queue connection options
-const connectionOptions = {
-  connection: {
-    host: env.REDIS_HOST || 'localhost',
-    port: env.REDIS_PORT ? parseInt(env.REDIS_PORT) : 6379,
-    // If we're in development environment, use inmemory storage instead of redis
-    ...(env.NODE_ENV === 'development' && { enableOfflineQueue: true, lazyConnect: true }),
-  },
-};
-
+/**
+ * Simple in-memory queue service that doesn't rely on Redis or external dependencies
+ */
 export class QueueService {
-  private queue: Queue;
   private scannerService: LibraryScannerService;
-  private workers: Worker[] = [];
+  private queue: Job[] = [];
+  private processing = false;
+  private jobCounter = 0;
 
   constructor() {
-    // Initialize the queue
-    this.queue = new Queue(QUEUE_NAME, connectionOptions);
-    
-    // Initialize the scanner service
+    console.log(`Initializing in-memory queue service in ${env.NODE_ENV} mode`);
     this.scannerService = new LibraryScannerService();
-
-    // Start workers
-    this.initWorkers();
-  }
-
-  private initWorkers() {
-    // Create worker for processing jobs
-    const concurrency = env.QUEUE_CONCURRENCY 
-      ? parseInt(env.QUEUE_CONCURRENCY) 
-      : DEFAULT_CONCURRENCY;
     
-    const worker = new Worker(
-      QUEUE_NAME,
-      async (job: Job) => {
-        await this.processJob(job);
-      },
-      {
-        ...connectionOptions,
-        concurrency,
-      }
-    );
-
-    worker.on('completed', (job) => {
-      console.log(`Job ${job.id} completed`);
-    });
-
-    worker.on('failed', (job, err) => {
-      console.error(`Job ${job?.id} failed with error: ${err.message}`);
-      
-      // Update job status in database if it's a scan job
-      if (job?.data?.scanId) {
-        this.updateScanJobStatus(job.data.scanId, ScanJobStatus.FAILED);
-      }
-    });
-
-    this.workers.push(worker);
+    // Start processing the queue
+    this.processQueue();
   }
 
-  private async processJob(job: Job) {
-    const { name, data } = job;
+  /**
+   * Process the next job in the queue
+   */
+  private async processQueue(): Promise<void> {
+    if (this.processing || this.queue.length === 0) {
+      // Schedule next check
+      setTimeout(() => this.processQueue(), 1000);
+      return;
+    }
 
-    switch (name) {
-      case JobType.SCAN_LIBRARY:
-        await this.processScanLibraryJob(data as ScanLibraryJobData);
-        break;
-      case JobType.IMPORT_FILE:
-        await this.processImportFileJob(data as ImportFileJobData);
-        break;
-      default:
-        throw new Error(`Unknown job type: ${name}`);
+    this.processing = true;
+    
+    try {
+      // Get the next job
+      const job = this.queue.shift();
+      
+      if (job) {
+        console.log(`Processing job ${job.id} of type ${job.type}`);
+        
+        try {
+          await this.processJob(job);
+          console.log(`Job ${job.id} completed`);
+        } catch (error) {
+          console.error(`Job ${job.id} failed:`, error);
+          
+          // Handle retry logic
+          if (job.attempts < job.maxAttempts) {
+            job.attempts++;
+            // Add back to queue with exponential backoff
+            const delayMs = Math.pow(2, job.attempts) * 1000;
+            setTimeout(() => {
+              this.queue.push(job);
+            }, delayMs);
+            
+            console.log(`Job ${job.id} requeued for retry (attempt ${job.attempts}/${job.maxAttempts})`);
+          } else {
+            console.error(`Job ${job.id} failed permanently after ${job.maxAttempts} attempts`);
+            
+            // Update job status if it's a scan job
+            if (job.type === JobType.SCAN_LIBRARY) {
+              const scanData = job.data as ScanLibraryJobData;
+              this.updateScanJobStatus(scanData.scanId, ScanJobStatus.FAILED);
+            }
+          }
+        }
+      }
+    } finally {
+      this.processing = false;
+      
+      // Continue processing the queue
+      setTimeout(() => this.processQueue(), 100);
     }
   }
 
-  private async processScanLibraryJob(data: ScanLibraryJobData) {
+  /**
+   * Process a job based on its type
+   */
+  private async processJob(job: Job): Promise<void> {
+    switch (job.type) {
+      case JobType.SCAN_LIBRARY:
+        await this.processScanLibraryJob(job.data as ScanLibraryJobData);
+        break;
+      case JobType.IMPORT_FILE:
+        await this.processImportFileJob(job.data as ImportFileJobData);
+        break;
+      default:
+        throw new Error(`Unknown job type: ${job.type}`);
+    }
+  }
+
+  /**
+   * Process a library scan job
+   */
+  private async processScanLibraryJob(data: ScanLibraryJobData): Promise<void> {
     const { scanId, paths } = data;
 
     try {
@@ -120,12 +140,15 @@ export class QueueService {
       // Update job status to failed
       await this.updateScanJobStatus(scanId, ScanJobStatus.FAILED);
       
-      // Rethrow to trigger the failed event
+      // Rethrow to trigger retry logic
       throw error;
     }
   }
 
-  private async processImportFileJob(data: ImportFileJobData) {
+  /**
+   * Process a file import job
+   */
+  private async processImportFileJob(data: ImportFileJobData): Promise<void> {
     const { scanId, filePath } = data;
 
     try {
@@ -137,12 +160,14 @@ export class QueueService {
       // Increment error count in scan job
       await this.incrementScanJobErrorCount(scanId);
       
-      // Rethrow to trigger the failed event
+      // Rethrow to trigger retry logic
       throw error;
     }
   }
 
-  // Queue a library scan job
+  /**
+   * Add a job to scan the library
+   */
   async queueLibraryScan(paths: string[] = [path.join(os.homedir(), 'Music')]): Promise<string> {
     // Create a new scan job in the database
     const [scanJob] = await db
@@ -154,38 +179,34 @@ export class QueueService {
       })
       .returning();
 
-    // Queue the scan job
-    await this.queue.add(
-      JobType.SCAN_LIBRARY,
-      { scanId: scanJob.id, paths } as ScanLibraryJobData,
-      {
-        attempts: 3,
-        backoff: {
-          type: 'exponential',
-          delay: 1000,
-        },
-      }
-    );
+    // Add to the queue
+    this.queue.push({
+      id: `job_${++this.jobCounter}`,
+      type: JobType.SCAN_LIBRARY,
+      data: { scanId: scanJob.id, paths },
+      attempts: 0,
+      maxAttempts: 3
+    });
 
     return scanJob.id;
   }
 
-  // Queue a single file import job
+  /**
+   * Add a job to import a file
+   */
   async queueFileImport(scanId: string, filePath: string): Promise<void> {
-    await this.queue.add(
-      JobType.IMPORT_FILE,
-      { scanId, filePath } as ImportFileJobData,
-      {
-        attempts: 3,
-        backoff: {
-          type: 'exponential',
-          delay: 1000,
-        },
-      }
-    );
+    this.queue.push({
+      id: `job_${++this.jobCounter}`,
+      type: JobType.IMPORT_FILE,
+      data: { scanId, filePath },
+      attempts: 0,
+      maxAttempts: 3
+    });
   }
 
-  // Helper method to update scan job status
+  /**
+   * Update the status of a scan job
+   */
   private async updateScanJobStatus(scanId: string, status: ScanJobStatus): Promise<void> {
     const completedAt = status === ScanJobStatus.COMPLETED || status === ScanJobStatus.FAILED
       ? new Date().toISOString()
@@ -200,7 +221,9 @@ export class QueueService {
       .where(eq(scanJobs.id, scanId));
   }
 
-  // Helper method to increment error count
+  /**
+   * Increment the error count for a scan job
+   */
   private async incrementScanJobErrorCount(scanId: string): Promise<void> {
     // Get current job first
     const [job] = await db
@@ -218,10 +241,11 @@ export class QueueService {
     }
   }
 
-  // Close the queue and workers
+  /**
+   * Close the queue service
+   */
   async close(): Promise<void> {
-    await Promise.all(this.workers.map(worker => worker.close()));
-    await this.queue.close();
+    // Nothing to close with in-memory implementation
   }
 }
 
