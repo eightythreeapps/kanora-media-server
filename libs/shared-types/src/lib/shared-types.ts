@@ -159,3 +159,16 @@ export interface AuthResponse {
   accessToken: string;
   refreshToken: string;
 }
+
+// Library scanning types
+export interface ScanStatus {
+  id: string;
+  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+  progress: number; // 0-100
+  currentFile: string | null;
+  totalFiles: number;
+  processedFiles: number;
+  errorCount: number;
+  startedAt: string;
+  completedAt?: string;
+}

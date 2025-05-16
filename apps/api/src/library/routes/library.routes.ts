@@ -7,6 +7,8 @@ import {
   getAlbumById,
   getAllTracks,
   getTrackById,
+  uploadMusicFile,
+  upload,
 } from '../controllers/library.controller';
 
 const router = Router();
@@ -23,4 +25,7 @@ router.get('/albums/:id', authenticate, getAlbumById);
 router.get('/tracks', authenticate, getAllTracks);
 router.get('/tracks/:id', authenticate, getTrackById);
 
-export default router; 
+// Upload route
+router.post('/upload', authenticate, upload.single('file'), uploadMusicFile);
+
+export default router;

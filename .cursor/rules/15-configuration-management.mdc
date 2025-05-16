@@ -3,3 +3,84 @@ description:
 globs:
 alwaysApply: false
 ---
+# Configuration Management Standards
+
+## Core Principles
+- **Single Source of Truth**: Define configuration values in one place only
+- **Environment Awareness**: Support different environments (dev, test, prod) through configuration
+- **Validation**: Validate configuration at startup to catch issues early
+- **Sensible Defaults**: Provide reasonable defaults for all configuration values
+- **Documentation**: Document all configuration options and their purpose
+
+## Port Management
+- Define all service ports in a central configuration file (`src/config/ports.ts` or similar)
+- Reference this file in both application code and test code
+- Never hardcode port numbers in multiple places
+- Use environment variables to override default ports when needed
+- Reserve specific port ranges for different services:
+  - 3000-3099: Web applications
+  - 3100-3199: API services
+  - 3200-3299: Database services
+  - 3300-3399: Test services
+
+## Environment Variables
+- Define environment variables in a `.env` file (not committed to source control)
+- Provide a `.env.example` file with all required variables and sensible defaults
+- Use a library like `dotenv` to load environment variables
+- Validate required environment variables at startup
+- Use TypeScript to ensure type safety for configuration values
+
+## Configuration File Structure
+```typescript
+// src/config/index.ts
+import { z } from 'zod';
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
+
+// Define configuration schema
+const configSchema = z.object({
+  port: z.number().default(3333),
+  host: z.string().default('localhost'),
+  nodeEnv: z.enum(['development', 'test', 'production']).default('development'),
+  database: z.object({
+    url: z.string(),
+    // Additional database configuration
+  }),
+  // Additional configuration sections
+});
+
+// Parse and validate configuration
+export const config = configSchema.parse({
+  port: process.env.PORT ? parseInt(process.env.PORT, 10) : undefined,
+  host: process.env.HOST,
+  nodeEnv: process.env.NODE_ENV,
+  database: {
+    url: process.env.DATABASE_URL,
+    // Additional database configuration
+  },
+  // Additional configuration sections
+});
+```
+
+## Test Configuration
+- Tests should use the same configuration system as the application
+- Override configuration values for tests using environment variables
+- For E2E tests, ensure port configuration matches the application
+- Use separate database connections for tests
+- Reset test state before each test run
+
+## CI/CD Configuration
+- Use environment-specific configuration in CI/CD pipelines
+- Store secrets in secure environment variables or secret management systems
+- Validate configuration as part of the CI/CD pipeline
+- Use the same configuration validation in CI/CD as in the application
+
+## Configuration Checklist
+- [ ] All configuration values are defined in a single location
+- [ ] Configuration is validated at startup
+- [ ] Environment variables are documented in `.env.example`
+- [ ] Test configuration uses the same system as the application
+- [ ] Port numbers are consistent across application and tests
+- [ ] Configuration is type-safe

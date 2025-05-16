@@ -4,6 +4,25 @@ import { artists } from '../../db/schema/artists';
 import { albums } from '../../db/schema/albums';
 import { tracks } from '../../db/schema/tracks';
 import { eq, like, sql, desc, and } from 'drizzle-orm';
+import path from 'path';
+import fs from 'fs';
+import { createId } from '@paralleldrive/cuid2';
+import { env } from '../../env';
+import { queueService } from '../services/queue.service';
+import multer from 'multer';
+
+// Configure multer for memory storage
+export const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  },
+});
+
+// Extend the Express Request type to include multer's file
+interface MulterRequest extends Request {
+  file?: Express.Multer.File;
+}
 
 /**
  * Get all artists
@@ -413,6 +432,84 @@ export const getTrackById = async (
     res.status(500).json({
       success: false,
       message: 'Failed to get track',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+};
+
+/**
+ * Upload a music file
+ */
+export const uploadMusicFile = async (
+  req: MulterRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    // Check if file was uploaded
+    if (!req.file) {
+      res.status(400).json({
+        success: false,
+        message: 'No file uploaded',
+      });
+      return;
+    }
+
+    const file = req.file;
+
+    // Validate file type
+    const supportedFormats = [
+      'audio/mpeg',
+      'audio/flac',
+      'audio/wav',
+      'audio/ogg',
+      'audio/mp4',
+    ];
+    const supportedExtensions = ['.mp3', '.flac', '.wav', '.ogg', '.m4a'];
+
+    const fileExtension = path.extname(file.originalname).toLowerCase();
+    const isValidExtension = supportedExtensions.includes(fileExtension);
+    const isValidMimeType = supportedFormats.includes(file.mimetype);
+
+    if (!isValidExtension && !isValidMimeType) {
+      res.status(400).json({
+        success: false,
+        message: 'Unsupported file format',
+        data: {
+          supportedFormats: supportedExtensions.join(', '),
+        },
+      });
+      return;
+    }
+
+    // Generate a unique ID for the file
+    const fileId = createId();
+
+    // Store file in the music inbox directory
+    const inboxPath = path.join(env.MUSIC_INBOX_PATH, fileId + fileExtension);
+
+    // Ensure inbox directory exists
+    await fs.promises.mkdir(env.MUSIC_INBOX_PATH, { recursive: true });
+
+    // Move the file from temp upload to inbox
+    await fs.promises.writeFile(inboxPath, file.buffer);
+
+    // Queue the file for processing
+    await queueService.queueFileImport(fileId, inboxPath);
+
+    res.status(200).json({
+      success: true,
+      message: 'File uploaded successfully',
+      data: {
+        fileId,
+        fileName: file.originalname,
+      },
+    });
+  } catch (error) {
+    console.error('Error uploading music file:', error);
+
+    res.status(500).json({
+      success: false,
+      message: 'Failed to upload music file',
       error: error instanceof Error ? error.message : 'Unknown error',
     });
   }

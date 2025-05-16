@@ -10,7 +10,8 @@ import {
   UserListResponse,
   CreateUserRequest,
   UpdateUserRequest,
-  UpdateProfileRequest
+  UpdateProfileRequest,
+  ScanStatus,
 } from '@kanora/shared-types';
 
 // Create axios instance with base configuration
@@ -57,7 +58,9 @@ export class ApiService {
     }
   }
 
-  static async updateProfile(data: UpdateProfileRequest): Promise<ApiResponse<User>> {
+  static async updateProfile(
+    data: UpdateProfileRequest,
+  ): Promise<ApiResponse<User>> {
     try {
       const response = await apiClient.put<ApiResponse<User>>('/api/me', data);
       return response.data;
@@ -177,6 +180,89 @@ export class ApiService {
       return response.data;
     } catch (error) {
       return this.handleError<PaginatedResponse<Media>>(error);
+    }
+  }
+
+  // Library scanner endpoints
+  static async startLibraryScan(
+    paths?: string[],
+  ): Promise<ApiResponse<{ scanId: string }>> {
+    try {
+      const response = await apiClient.post<ApiResponse<{ scanId: string }>>(
+        '/api/library/scan',
+        { paths },
+      );
+      return response.data;
+    } catch (error) {
+      return this.handleError<{ scanId: string }>(error);
+    }
+  }
+
+  static async getScanStatus(scanId: string): Promise<ApiResponse<ScanStatus>> {
+    try {
+      const response = await apiClient.get<ApiResponse<ScanStatus>>(
+        `/api/library/scan/status/${scanId}`,
+      );
+      return response.data;
+    } catch (error) {
+      return this.handleError<ScanStatus>(error);
+    }
+  }
+
+  static async uploadMusic(
+    formData: FormData,
+    onProgress?: (progress: number) => void,
+  ): Promise<ApiResponse<{ fileId: string }>> {
+    try {
+      // Create a custom axios instance for this request to handle file uploads with progress
+      const response = await axios.post<ApiResponse<{ fileId: string }>>(
+        `${process.env['NX_API_URL'] || 'http://localhost:3333'}/api/library/upload`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            ...(localStorage.getItem('auth_token')
+              ? {
+                  Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+                }
+              : {}),
+          },
+          onUploadProgress: (progressEvent) => {
+            if (onProgress && progressEvent.total) {
+              const percentCompleted = Math.round(
+                (progressEvent.loaded * 100) / progressEvent.total,
+              );
+              onProgress(percentCompleted);
+            }
+          },
+        },
+      );
+
+      return response.data;
+    } catch (error) {
+      return this.handleError<{ fileId: string }>(error);
+    }
+  }
+
+  static async startInboxWatcher(): Promise<ApiResponse<null>> {
+    try {
+      const response = await apiClient.post<ApiResponse<null>>(
+        '/api/library/inbox/watch/start',
+      );
+      return response.data;
+    } catch (error) {
+      return this.handleError<null>(error);
+    }
+  }
+
+  static async stopInboxWatcher(): Promise<ApiResponse<null>> {
+    try {
+      const response = await apiClient.post<ApiResponse<null>>(
+        '/api/library/inbox/watch/stop',
+      );
+      return response.data;
+    } catch (error) {
+      return this.handleError<null>(error);
     }
   }
 

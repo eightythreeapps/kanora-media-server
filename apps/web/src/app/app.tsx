@@ -16,6 +16,8 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { ProfilePage } from './components/user/ProfilePage';
 import { UserList } from './components/user/UserList';
 import { UserForm } from './components/user/UserForm';
+import { LibraryPage } from './components/library/LibraryPage';
+import { MainLayout } from './components/layout/MainLayout';
 
 const HomePage = () => {
   const [mediaItems, setMediaItems] = useState<Media[]>([]);
@@ -95,14 +97,22 @@ const AboutPage = () => (
   </div>
 );
 
+const SettingsPage = () => (
+  <div className={styles.container}>
+    <h1 className={styles.heading}>Settings</h1>
+    <p>Settings page is under construction.</p>
+    <Button variant="outline" onClick={() => window.history.back()}>
+      Go Back
+    </Button>
+  </div>
+);
+
 export function App() {
   return (
     <AuthProvider>
       <Routes>
-        {/* Public routes */}
+        {/* Public routes - remain outside MainLayout */}
         <Route path="/" element={<Navigate to="/login" replace />} />
-
-        {/* Auth routes */}
         <Route
           path="/login"
           element={
@@ -111,8 +121,6 @@ export function App() {
             </AuthLayout>
           }
         />
-        
-        {/* Setup route */}
         <Route
           path="/setup"
           element={
@@ -121,8 +129,6 @@ export function App() {
             </AuthLayout>
           }
         />
-
-        {/* Redirect old auth routes to access denied */}
         <Route
           path="/register"
           element={
@@ -148,14 +154,18 @@ export function App() {
           }
         />
 
-        {/* Protected routes */}
+        {/* Protected routes - now wrapped by MainLayout */}
         <Route element={<ProtectedRoute />}>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/profile" element={<ProfilePage />} />
-
-          {/* Admin User Management routes */}
-          <Route path="/admin/users" element={<UserList />} />
-          <Route path="/admin/users/:id" element={<UserForm />} />
+          <Route element={<MainLayout />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/library" element={<LibraryPage />} />
+            <Route path="/browse" element={<HomePage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            {/* Admin User Management routes */}
+            <Route path="/admin/users" element={<UserList />} />
+            <Route path="/admin/users/:id" element={<UserForm />} />
+          </Route>
         </Route>
 
         {/* Catch all - redirect to login */}
