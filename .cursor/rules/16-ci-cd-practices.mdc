@@ -3,3 +3,85 @@ description:
 globs:
 alwaysApply: false
 ---
+# CI/CD Best Practices
+
+## Core Principles
+- **Fail Fast**: Catch errors as early as possible in the pipeline
+- **Consistency**: Ensure CI environment matches development environment
+- **Automation**: Automate all repetitive tasks
+- **Visibility**: Make build and test results easily accessible
+- **Incremental**: Run fast checks before slow ones
+
+## Pipeline Structure
+1. **Lint**: Check code style and static analysis
+2. **Format**: Verify code formatting
+3. **Build**: Compile code and check for errors
+4. **Unit Tests**: Run fast, isolated tests
+5. **Integration Tests**: Test component interactions
+6. **E2E Tests**: Test complete user flows
+7. **Deploy**: Deploy to staging/production
+
+## Pre-Commit Checks
+- Run linting and formatting checks locally before committing
+- Use Git hooks to automate pre-commit checks
+- Fail commits that don't pass basic checks
+
+## Local Testing Before Push
+- Run the following commands before pushing changes:
+  ```bash
+  # Check formatting
+  npx nx format:check
+  
+  # Run linting
+  npx nx run-many --target=lint --all
+  
+  # Run unit tests
+  npx nx run-many --target=test --all
+  
+  # Run affected e2e tests
+  npx nx affected -t e2e
+  ```
+
+## Preventing Common CI Failures
+- **Port conflicts**: Use unique ports for each service and ensure tests use the correct ports
+- **Test expectations**: Keep test expectations in sync with implementation
+- **Database state**: Reset database state before tests
+- **Environment variables**: Ensure all required environment variables are set in CI
+- **Dependency management**: Keep dependencies up to date and lock versions
+- **Timeouts**: Set appropriate timeouts for long-running tests
+- **Flaky tests**: Identify and fix flaky tests immediately
+
+## Handling Test Failures
+1. **Investigate**: Understand why the test is failing
+2. **Reproduce**: Reproduce the failure locally
+3. **Fix**: Fix the root cause, not just the symptom
+4. **Document**: Document the issue and solution
+5. **Prevent**: Add checks to prevent similar issues
+
+## Temporary Test Skipping
+- Only skip tests as a last resort
+- Always create an issue to track skipped tests
+- Add a comment explaining why the test is skipped
+- Include a link to the issue in the comment
+- Set a deadline for fixing skipped tests
+
+## CI Configuration
+- Store CI configuration in version control
+- Document CI environment setup
+- Use Docker containers for consistent environments
+- Cache dependencies to speed up builds
+- Use parallel execution where possible
+
+## Monitoring and Alerting
+- Monitor CI pipeline performance
+- Alert on build failures
+- Track test coverage over time
+- Identify trends in build times and failure rates
+
+## CI/CD Checklist
+- [ ] All checks pass locally before pushing
+- [ ] CI pipeline is configured to run all necessary checks
+- [ ] Test failures are investigated and fixed promptly
+- [ ] Environment variables are properly configured
+- [ ] Build artifacts are properly versioned
+- [ ] Deployment process is automated and reliable

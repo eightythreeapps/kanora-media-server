@@ -1,12 +1,17 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 export const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   const handleLogout = async () => {
     await logout();
+  };
+
+  const handleNavigateToUpload = () => {
+    navigate('/library?tab=upload');
   };
 
   return (
@@ -18,8 +23,7 @@ export const Dashboard: React.FC = () => {
               Welcome to Kanora
             </h1>
             <p className="mt-2 text-lg text-gray-600">
-              Hello,{' '}
-              {user?.displayName || `${user?.firstName} ${user?.lastName}`}!
+              Hello, {user?.displayName || 'User'}!
             </p>
           </div>
 
@@ -80,7 +84,10 @@ export const Dashboard: React.FC = () => {
               Quick Actions
             </h2>
             <div className="grid grid-cols-1 gap-4 mt-4 md:grid-cols-2 lg:grid-cols-3">
-              <button className="flex flex-col items-center justify-center p-4 transition-colors bg-white border rounded-lg shadow-sm hover:bg-primary-50">
+              <Link
+                to="/browse"
+                className="flex flex-col items-center justify-center p-4 transition-colors bg-white border rounded-lg shadow-sm hover:bg-primary-50"
+              >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className="w-8 h-8 text-primary-600"
@@ -98,9 +105,35 @@ export const Dashboard: React.FC = () => {
                 <span className="mt-2 font-medium text-gray-800">
                   Browse Music
                 </span>
-              </button>
+              </Link>
 
-              <button className="flex flex-col items-center justify-center p-4 transition-colors bg-white border rounded-lg shadow-sm hover:bg-primary-50">
+              <Link
+                to="/library"
+                className="flex flex-col items-center justify-center p-4 transition-colors bg-white border rounded-lg shadow-sm hover:bg-primary-50"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-8 h-8 text-primary-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                  />
+                </svg>
+                <span className="mt-2 font-medium text-gray-800">
+                  Manage Library
+                </span>
+              </Link>
+
+              <Link
+                to="/library?tab=upload"
+                className="flex flex-col items-center justify-center p-4 transition-colors bg-white border rounded-lg shadow-sm hover:bg-primary-50"
+              >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className="w-8 h-8 text-primary-600"
@@ -118,9 +151,12 @@ export const Dashboard: React.FC = () => {
                 <span className="mt-2 font-medium text-gray-800">
                   Upload Music
                 </span>
-              </button>
+              </Link>
 
-              <button className="flex flex-col items-center justify-center p-4 transition-colors bg-white border rounded-lg shadow-sm hover:bg-primary-50">
+              <Link
+                to="/settings"
+                className="flex flex-col items-center justify-center p-4 transition-colors bg-white border rounded-lg shadow-sm hover:bg-primary-50"
+              >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className="w-8 h-8 text-primary-600"
@@ -142,7 +178,7 @@ export const Dashboard: React.FC = () => {
                   />
                 </svg>
                 <span className="mt-2 font-medium text-gray-800">Settings</span>
-              </button>
+              </Link>
             </div>
           </div>
 
