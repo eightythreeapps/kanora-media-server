@@ -149,7 +149,6 @@ export class LibraryScannerService {
             .insert(artists)
             .values({
               name: artistName,
-              sortName: sortArtistName,
             })
             .returning()
             .then((rows) => rows[0]);

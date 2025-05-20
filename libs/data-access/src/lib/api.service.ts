@@ -12,11 +12,14 @@ import {
   UpdateUserRequest,
   UpdateProfileRequest,
   ScanStatus,
+  Artist,
+  ArtistDetails,
+  AlbumDetails,
 } from '@kanora/shared-types';
 
 // Create axios instance with base configuration
 const apiClient = axios.create({
-  baseURL: process.env['NX_API_URL'] || 'http://localhost:3333',
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3333',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -216,7 +219,7 @@ export class ApiService {
     try {
       // Create a custom axios instance for this request to handle file uploads with progress
       const response = await axios.post<ApiResponse<{ fileId: string }>>(
-        `${process.env['NX_API_URL'] || 'http://localhost:3333'}/api/library/upload`,
+        `${import.meta.env.VITE_API_URL || 'http://localhost:3333'}/api/library/upload`,
         formData,
         {
           headers: {
@@ -265,6 +268,60 @@ export class ApiService {
       return this.handleError<null>(error);
     }
   }
+
+  // Catalog browsing endpoints
+  static async getAllArtists(
+    page = 1,
+    pageSize = 20,
+    searchQuery = '',
+    sortBy = 'name',
+    sortOrder = 'asc',
+  ): Promise<ApiResponse<PaginatedResponse<Artist>>> {
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        pageSize: pageSize.toString(),
+        sortBy,
+        sortOrder,
+      });
+      if (searchQuery) {
+        params.append('q', searchQuery);
+      }
+      const response = await apiClient.get<
+        ApiResponse<PaginatedResponse<Artist>>
+      >(`/api/artists?${params.toString()}`);
+      return response.data;
+    } catch (error) {
+      return this.handleError<PaginatedResponse<Artist>>(error);
+    }
+  }
+
+  static async getArtistDetails(
+    artistId: string,
+  ): Promise<ApiResponse<ArtistDetails>> {
+    try {
+      const response = await apiClient.get<ApiResponse<ArtistDetails>>(
+        `/api/artists/${artistId}`,
+      );
+      return response.data;
+    } catch (error) {
+      return this.handleError<ArtistDetails>(error);
+    }
+  }
+
+  static async getAlbumDetails(
+    albumId: string,
+  ): Promise<ApiResponse<AlbumDetails>> {
+    try {
+      const response = await apiClient.get<ApiResponse<AlbumDetails>>(
+        `/api/albums/${albumId}`,
+      );
+      return response.data;
+    } catch (error) {
+      return this.handleError<AlbumDetails>(error);
+    }
+  }
+  // End Catalog browsing endpoints
 
   // Error handling
   private static handleError<T>(error: unknown): ApiResponse<T> {

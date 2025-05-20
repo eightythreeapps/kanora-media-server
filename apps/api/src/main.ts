@@ -15,6 +15,7 @@ import userRoutes from './users/routes/userRoutes';
 import libraryRoutes from './library/routes/library.routes';
 import scannerRoutes from './library/routes/scanner.routes';
 import streamingRoutes from './streaming/routes/streaming.routes';
+import artistRoutes from './catalog/routes/artist.routes';
 import { cleanupRevokedTokens } from './auth/utils/jwt';
 import { fileWatcherService } from './library/services/watcher.service';
 
@@ -43,6 +44,9 @@ app.use('/api/library', scannerRoutes);
 
 // Streaming routes
 app.use('/api/streaming', streamingRoutes);
+
+// Catalog routes (new)
+app.use('/api/artists', artistRoutes);
 
 // Sample data (in-memory database for demo)
 const mediaItems: Media[] = [

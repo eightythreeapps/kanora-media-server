@@ -172,3 +172,61 @@ export interface ScanStatus {
   startedAt: string;
   completedAt?: string;
 }
+
+// Catalog Browsing Types
+export interface Artist {
+  id: string;
+  name: string;
+  // Optional: fields can be added by backend if available from metadata
+  coverArtUrl?: string;
+  bio?: string;
+  genre?: string; // Primary genre
+  albumCount?: number; // Calculated by backend
+  trackCount?: number; // Calculated by backend
+}
+
+export interface Album {
+  id: string;
+  title: string;
+  artistId: string; // Foreign key to Artist
+  artistName: string; // Denormalized for convenience
+  // Optional: fields can be added by backend if available from metadata
+  coverArtUrl?: string;
+  releaseDate?: string; // ISO 8601 Date string
+  genre?: string;
+  trackCount?: number; // Calculated by backend
+  duration?: number; // Total duration of album in seconds, calculated by backend
+}
+
+export interface Track {
+  id: string;
+  title: string;
+  artistId: string; // Foreign key to Artist
+  artistName: string; // Denormalized
+  albumId: string; // Foreign key to Album
+  albumTitle: string; // Denormalized
+  trackNumber?: number;
+  discNumber?: number;
+  duration: number; // in seconds
+  filePath: string; // Path to the audio file on the server
+  // Optional: fields can be added by backend
+  genre?: string;
+  year?: number;
+  coverArtUrl?: string; // Often same as album, but could be track-specific
+  mimeType?: string;
+  bitrate?: number; // kbps
+  sampleRate?: number; // Hz
+  channels?: number; // 1 (mono), 2 (stereo)
+  playCount?: number;
+  lastPlayedAt?: string; // ISO 8601 DateTime string
+  rating?: number; // e.g., 1-5 stars
+}
+
+export type ArtistDetails = Artist & {
+  albums: Album[]; // List of albums by this artist
+  // Optionally, top tracks or similar artists could be added
+};
+
+export type AlbumDetails = Album & {
+  tracks: Track[]; // Ordered list of tracks in this album
+};
