@@ -3,6 +3,6 @@ module.exports = {
   out: './apps/api/src/db/migrations',
   dialect: 'sqlite',
   dbCredentials: {
-    url: './data/kanora.db',
+    url: 'file:./data/kanora.db',
   },
-}; 
+};

@@ -295,7 +295,7 @@ export const LibraryPage: React.FC = () => {
               drag and drop
             </p>
             <p className="text-xs text-gray-500">
-              MP3, FLAC, M4A, OGG, WAV (Max 10MB per file)
+              MP3, FLAC, M4A, OGG, WAV (Max 100MB per file)
             </p>
           </div>
           <input

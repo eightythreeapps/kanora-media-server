@@ -13,9 +13,11 @@ CREATE TABLE `albums` (
 CREATE TABLE `artists` (
 	`id` text PRIMARY KEY NOT NULL,
 	`name` text NOT NULL,
-	`sort_name` text NOT NULL,
-	`created_at` text NOT NULL,
-	`updated_at` text NOT NULL
+	`cover_art_url` text,
+	`bio` text,
+	`genre` text,
+	`created_at` text DEFAULT '2025-05-20T21:06:17.694Z',
+	`updated_at` text DEFAULT '2025-05-20T21:06:17.694Z'
 );
 --> statement-breakpoint
 CREATE TABLE `revoked_tokens` (
@@ -26,7 +28,6 @@ CREATE TABLE `revoked_tokens` (
 	`revoked_at` text NOT NULL
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `revoked_tokens_jti_unique` ON `revoked_tokens` (`jti`);--> statement-breakpoint
 CREATE TABLE `users` (
 	`id` text PRIMARY KEY NOT NULL,
 	`username` text NOT NULL,
@@ -40,7 +41,6 @@ CREATE TABLE `users` (
 	`updated_at` text NOT NULL
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `users_username_unique` ON `users` (`username`);--> statement-breakpoint
 CREATE TABLE `tracks` (
 	`id` text PRIMARY KEY NOT NULL,
 	`title` text NOT NULL,
@@ -61,7 +61,6 @@ CREATE TABLE `tracks` (
 	FOREIGN KEY (`artist_id`) REFERENCES `artists`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `tracks_content_hash_unique` ON `tracks` (`content_hash`);--> statement-breakpoint
 CREATE TABLE `playlist_tracks` (
 	`id` text PRIMARY KEY NOT NULL,
 	`playlist_id` text NOT NULL,
@@ -102,3 +101,7 @@ CREATE TABLE `system_settings` (
 	`auto_organize` integer DEFAULT true NOT NULL,
 	`updated_at` text NOT NULL
 );
+--> statement-breakpoint
+CREATE UNIQUE INDEX `revoked_tokens_jti_unique` ON `revoked_tokens` (`jti`);--> statement-breakpoint
+CREATE UNIQUE INDEX `users_username_unique` ON `users` (`username`);--> statement-breakpoint
+CREATE UNIQUE INDEX `tracks_content_hash_unique` ON `tracks` (`content_hash`);

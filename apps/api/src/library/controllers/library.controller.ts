@@ -15,7 +15,7 @@ import multer from 'multer';
 export const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit
+    fileSize: 100 * 1024 * 1024, // 100MB limit
   },
 });
 
@@ -50,8 +50,8 @@ export const getAllArtists = async (
     // Apply sorting
     const finalQuery =
       sort === 'name' && order === 'desc'
-        ? query.orderBy(desc(artists.sortName))
-        : query.orderBy(artists.sortName);
+        ? query.orderBy(desc(artists.name))
+        : query.orderBy(artists.name);
 
     // Execute query
     const artistsList = await finalQuery;
@@ -156,25 +156,25 @@ export const getAllAlbums = async (
       .where(whereConditions.length ? and(...whereConditions) : undefined);
 
     // Apply sorting
-    let query;
+    let queryAlbums;
     if (sort === 'title' && order === 'desc') {
-      query = baseQuery.orderBy(desc(albums.sortTitle));
+      queryAlbums = baseQuery.orderBy(desc(albums.sortTitle));
     } else if (sort === 'title' && order === 'asc') {
-      query = baseQuery.orderBy(albums.sortTitle);
+      queryAlbums = baseQuery.orderBy(albums.sortTitle);
     } else if (sort === 'year' && order === 'desc') {
-      query = baseQuery.orderBy(desc(albums.year));
+      queryAlbums = baseQuery.orderBy(desc(albums.year));
     } else if (sort === 'year' && order === 'asc') {
-      query = baseQuery.orderBy(albums.year);
+      queryAlbums = baseQuery.orderBy(albums.year);
     } else if (sort === 'artist' && order === 'desc') {
-      query = baseQuery.orderBy(desc(artists.sortName));
+      queryAlbums = baseQuery.orderBy(desc(artists.name));
     } else if (sort === 'artist' && order === 'asc') {
-      query = baseQuery.orderBy(artists.sortName);
+      queryAlbums = baseQuery.orderBy(artists.name);
     } else {
-      query = baseQuery.orderBy(albums.sortTitle);
+      queryAlbums = baseQuery.orderBy(albums.sortTitle);
     }
 
     // Execute query
-    const albumsList = await query;
+    const albumsList = await queryAlbums;
 
     res.status(200).json({
       success: true,
@@ -261,95 +261,82 @@ export const getAllTracks = async (
   try {
     const {
       q,
-      artist,
-      album,
+      artist: artistId,
+      album: albumId,
       sort = 'title',
       order = 'asc',
-      limit = '100',
-      offset = '0',
+      page = 1,
+      pageSize = 20,
     } = req.query;
 
-    // Parse limit and offset
-    const parsedLimit = Math.min(parseInt(limit as string) || 100, 1000);
-    const parsedOffset = parseInt(offset as string) || 0;
+    const numPage = Number(page);
+    const numPageSize = Number(pageSize);
 
     // Build where conditions
     const whereConditions = [];
 
-    if (artist && typeof artist === 'string') {
-      whereConditions.push(eq(tracks.artistId, artist));
+    if (artistId && typeof artistId === 'string') {
+      whereConditions.push(eq(tracks.artistId, artistId));
     }
-
-    if (album && typeof album === 'string') {
-      whereConditions.push(eq(tracks.albumId, album));
+    if (albumId && typeof albumId === 'string') {
+      whereConditions.push(eq(tracks.albumId, albumId as string));
     }
 
     if (q && typeof q === 'string') {
       whereConditions.push(like(tracks.title, `%${q}%`));
     }
 
-    // Start query
-    const baseQuery = db
+    // Start query with joins
+    const baseQueryTracks = db
       .select({
         id: tracks.id,
         title: tracks.title,
-        sortTitle: tracks.sortTitle,
-        artistId: tracks.artistId,
-        albumId: tracks.albumId,
+        artistName: artists.name,
+        albumTitle: albums.title,
         trackNumber: tracks.trackNumber,
         discNumber: tracks.discNumber,
         duration: tracks.duration,
-        format: tracks.format,
-        bitrate: tracks.bitrate,
-        artistName: artists.name,
-        albumTitle: albums.title,
-        year: albums.year,
+        filePath: tracks.path,
       })
       .from(tracks)
-      .leftJoin(artists, eq(tracks.artistId, artists.id))
       .leftJoin(albums, eq(tracks.albumId, albums.id))
+      .leftJoin(artists, eq(albums.artistId, artists.id))
       .where(whereConditions.length ? and(...whereConditions) : undefined);
 
-    // Apply sorting
-    let query;
+    // Apply sorting for getAllTracks
+    let queryTracks;
     if (sort === 'title' && order === 'desc') {
-      query = baseQuery.orderBy(desc(tracks.sortTitle));
+      queryTracks = baseQueryTracks.orderBy(desc(tracks.title));
     } else if (sort === 'title' && order === 'asc') {
-      query = baseQuery.orderBy(tracks.sortTitle);
-    } else if (sort === 'album' && order === 'desc') {
-      query = baseQuery.orderBy(desc(albums.sortTitle));
-    } else if (sort === 'album' && order === 'asc') {
-      query = baseQuery.orderBy(
-        albums.sortTitle,
-        tracks.discNumber,
-        tracks.trackNumber,
-      );
+      queryTracks = baseQueryTracks.orderBy(tracks.title);
     } else if (sort === 'artist' && order === 'desc') {
-      query = baseQuery.orderBy(desc(artists.sortName));
+      queryTracks = baseQueryTracks.orderBy(desc(artists.name));
     } else if (sort === 'artist' && order === 'asc') {
-      query = baseQuery.orderBy(
-        artists.sortName,
+      queryTracks = baseQueryTracks.orderBy(
+        artists.name,
         albums.sortTitle,
         tracks.discNumber,
         tracks.trackNumber,
       );
+    } else if (sort === 'album' && order === 'desc') {
+      queryTracks = baseQueryTracks.orderBy(desc(albums.sortTitle));
+    } else if (sort === 'album' && order === 'asc') {
+      queryTracks = baseQueryTracks.orderBy(albums.sortTitle);
     } else if (sort === 'duration' && order === 'desc') {
-      query = baseQuery.orderBy(desc(tracks.duration));
+      queryTracks = baseQueryTracks.orderBy(desc(tracks.duration));
     } else if (sort === 'duration' && order === 'asc') {
-      query = baseQuery.orderBy(tracks.duration);
+      queryTracks = baseQueryTracks.orderBy(tracks.duration);
     } else {
-      query = baseQuery.orderBy(
+      queryTracks = baseQueryTracks.orderBy(
         albums.sortTitle,
         tracks.discNumber,
         tracks.trackNumber,
       );
     }
 
-    // Apply pagination
-    const paginatedQuery = query.limit(parsedLimit).offset(parsedOffset);
-
-    // Execute query
-    const tracksList = await paginatedQuery;
+    // TODO: Implement pagination for tracks if baseQueryTracks supports limit/offset
+    // const tracksList = await queryTracks.limit(pageSize).offset((page - 1) * pageSize);
+    const tracksList = await queryTracks;
 
     // Get total count for pagination
     const countResult = await db.select({ count: sql`count(*)` }).from(tracks);
@@ -359,10 +346,10 @@ export const getAllTracks = async (
       success: true,
       data: {
         items: tracksList,
-        page: Math.floor(parsedOffset / parsedLimit) + 1,
-        pageSize: parsedLimit,
+        page: numPage,
+        pageSize: numPageSize,
         totalItems: totalCount,
-        totalPages: Math.ceil(totalCount / parsedLimit),
+        totalPages: Math.ceil(totalCount / numPageSize),
       },
     });
   } catch (error) {

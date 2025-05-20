@@ -18,6 +18,10 @@ import { UserList } from './components/user/UserList';
 import { UserForm } from './components/user/UserForm';
 import { LibraryPage } from './components/library/LibraryPage';
 import { MainLayout } from './components/layout/MainLayout';
+// Import new browse pages
+import ArtistListPage from './pages/browse/ArtistListPage';
+import ArtistDetailPage from './pages/browse/ArtistDetailPage';
+import AlbumDetailPage from './pages/browse/AlbumDetailPage';
 
 const HomePage = () => {
   const [mediaItems, setMediaItems] = useState<Media[]>([]);
@@ -160,7 +164,22 @@ export function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/library" element={<LibraryPage />} />
-            <Route path="/browse" element={<HomePage />} />
+
+            {/* Music Browsing Routes */}
+            <Route
+              path="/browse"
+              element={<Navigate to="/browse/artists" replace />}
+            />
+            <Route path="/browse/artists" element={<ArtistListPage />} />
+            <Route
+              path="/browse/artist/:artistId"
+              element={<ArtistDetailPage />}
+            />
+            <Route
+              path="/browse/album/:albumId"
+              element={<AlbumDetailPage />}
+            />
+
             <Route path="/settings" element={<SettingsPage />} />
             {/* Admin User Management routes */}
             <Route path="/admin/users" element={<UserList />} />
