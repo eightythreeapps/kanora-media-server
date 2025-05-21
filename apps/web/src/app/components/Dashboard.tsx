@@ -1,10 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useAudioPlayer } from '../contexts/AudioPlayerContext';
+import { ApiService } from '@kanora/data-access';
+import { Track } from '@kanora/shared-types';
 
 export const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { playTrack } = useAudioPlayer();
+  const [recentTracks, setRecentTracks] = useState<Track[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const handleLogout = async () => {
     await logout();
@@ -12,6 +18,62 @@ export const Dashboard: React.FC = () => {
 
   const handleNavigateToUpload = () => {
     navigate('/library?tab=upload');
+  };
+
+  // Load a sample track to test player
+  useEffect(() => {
+    const fetchRecentTracks = async () => {
+      setLoading(true);
+      try {
+        // Get first album from the API to find tracks
+        const artistsResponse = await ApiService.getAllArtists(1, 1);
+        if (
+          artistsResponse.success &&
+          artistsResponse.data &&
+          artistsResponse.data.items &&
+          artistsResponse.data.items.length > 0
+        ) {
+          const firstArtist = artistsResponse.data.items[0];
+
+          // Get artist details with albums
+          const artistDetails = await ApiService.getArtistDetails(
+            firstArtist.id,
+          );
+          if (
+            artistDetails.success &&
+            artistDetails.data &&
+            artistDetails.data.albums &&
+            artistDetails.data.albums.length > 0
+          ) {
+            const firstAlbum = artistDetails.data.albums[0];
+
+            // Get album details with tracks
+            const albumDetails = await ApiService.getAlbumDetails(
+              firstAlbum.id,
+            );
+            if (
+              albumDetails.success &&
+              albumDetails.data &&
+              albumDetails.data.tracks &&
+              albumDetails.data.tracks.length > 0
+            ) {
+              setRecentTracks(albumDetails.data.tracks.slice(0, 5));
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching tracks:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRecentTracks();
+  }, []);
+
+  // Function to play a test track
+  const handlePlayTrack = (track: Track) => {
+    playTrack(track);
   };
 
   return (

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext'; // Adjusted path
+import { useAuth } from '../../contexts/AuthContext';
+import { useAudioPlayer } from '../../contexts/AudioPlayerContext';
 
 // Define a type for navigation items
 interface NavItem {
@@ -8,6 +9,7 @@ interface NavItem {
   name: string;
   icon?: JSX.Element; // Optional icon
   adminOnly?: boolean; // For admin-specific links
+  show?: boolean; // Conditionally show item
 }
 
 // Example icons (replace with actual icons later)
@@ -44,15 +46,27 @@ const AdminIcon = () => (
     ></path>
   </svg>
 );
+const PlayingIcon = () => (
+  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+    <path d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 00-1 1v2a1 1 0 001 1h6a1 1 0 001-1V9a1 1 0 00-1-1H7z" />
+  </svg>
+);
 
 export const Sidebar: React.FC = () => {
   const { user } = useAuth();
+  const { currentTrack } = useAudioPlayer();
   const location = useLocation();
 
   const navItems: NavItem[] = [
     { path: '/dashboard', name: 'Dashboard', icon: <DashboardIcon /> },
     { path: '/browse', name: 'Browse Music', icon: <MusicIcon /> },
     { path: '/library', name: 'Manage Library', icon: <LibraryIcon /> },
+    {
+      path: '/player/now-playing',
+      name: 'Now Playing',
+      icon: <PlayingIcon />,
+      show: !!currentTrack, // Only show if there's a track playing
+    },
     { path: '/settings', name: 'Settings', icon: <SettingsIcon /> },
     {
       path: '/admin/users',
@@ -75,9 +89,14 @@ export const Sidebar: React.FC = () => {
       </div>
       <nav className="pt-3 text-base font-semibold text-white">
         {navItems.map((item) => {
-          if (item.adminOnly && user?.role !== 'admin') {
-            return null; // Don't render admin links for non-admins
+          // Skip items that should be hidden
+          if (
+            (item.adminOnly && user?.role !== 'admin') ||
+            item.show === false
+          ) {
+            return null;
           }
+
           const isActive =
             location.pathname === item.path ||
             (item.path !== '/dashboard' &&

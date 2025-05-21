@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { AudioPlayer } from '../player/AudioPlayer';
 import { MiniPlayer } from '../player/MiniPlayer';
@@ -9,9 +9,24 @@ export const MainLayout: React.FC = () => {
   const { currentTrack } = useAudioPlayer();
   const [expanded, setExpanded] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Check if we're on the now playing page
+  const isNowPlayingPage = location.pathname === '/player/now-playing';
 
   const handleExpandPlayer = () => {
-    navigate('/player/now-playing');
+    // If we're not already on the now playing page, navigate there
+    if (!isNowPlayingPage) {
+      navigate('/player/now-playing');
+    } else {
+      // Otherwise toggle the expanded state
+      setExpanded(!expanded);
+    }
+  };
+
+  // Toggle expanded state when clicking the mini player
+  const handleToggleExpand = () => {
+    setExpanded(!expanded);
   };
 
   // Calculate bottom padding to prevent content from being hidden behind the player
@@ -28,13 +43,13 @@ export const MainLayout: React.FC = () => {
           <Outlet /> {/* Page content will be rendered here */}
         </div>
 
-        {/* Audio player at bottom of screen */}
-        {currentTrack && (
+        {/* Audio player at bottom of screen - only show on non-now-playing pages */}
+        {currentTrack && !isNowPlayingPage && (
           <>
             {expanded ? (
               <AudioPlayer />
             ) : (
-              <MiniPlayer onExpand={handleExpandPlayer} />
+              <MiniPlayer onExpand={handleToggleExpand} />
             )}
           </>
         )}
