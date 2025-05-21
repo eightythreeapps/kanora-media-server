@@ -16,8 +16,8 @@ CREATE TABLE `artists` (
 	`cover_art_url` text,
 	`bio` text,
 	`genre` text,
-	`created_at` text DEFAULT '2025-05-20T21:06:17.694Z',
-	`updated_at` text DEFAULT '2025-05-20T21:06:17.694Z'
+	`created_at` text DEFAULT '2025-05-20T21:17:34.208Z',
+	`updated_at` text DEFAULT '2025-05-20T21:17:34.208Z'
 );
 --> statement-breakpoint
 CREATE TABLE `revoked_tokens` (

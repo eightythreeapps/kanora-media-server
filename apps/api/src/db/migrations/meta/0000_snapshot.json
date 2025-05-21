@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "b5b3091d-891a-4ed0-a089-760310ecbc2e",
+  "id": "444f62b4-600c-4fdb-bdc6-a92ec9b79dd0",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "albums": {
@@ -123,7 +123,7 @@
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false,
-          "default": "'2025-05-20T21:06:17.694Z'"
+          "default": "'2025-05-20T21:17:34.208Z'"
         },
         "updated_at": {
           "name": "updated_at",
@@ -131,7 +131,7 @@
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false,
-          "default": "'2025-05-20T21:06:17.694Z'"
+          "default": "'2025-05-20T21:17:34.208Z'"
         }
       },
       "indexes": {},
