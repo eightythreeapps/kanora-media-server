@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { ApiService } from '@kanora/data-access';
 import { ArtistDetails, Album } from '@kanora/shared-types';
-import { Card, CardContent, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardTitle } from '../../../components/ui/card';
 
 const placeholderImg = 'https://placehold.co/160x160?text=Album';
 
@@ -58,21 +58,23 @@ const ArtistDetailPage: React.FC = () => {
         {artist.albums && artist.albums.length > 0 ? (
           <div className="flex gap-4 overflow-x-auto w-full pb-2">
             {artist.albums.map((album: Album) => (
-              <Card key={album.id} className={albumCardClass}>
-                <img
-                  src={album.coverArtUrl || placeholderImg}
-                  alt={album.title}
-                  className={albumImgClass}
-                  width={160}
-                  height={160}
-                  loading="lazy"
-                />
-                <CardContent className="flex-1 flex flex-col justify-end p-2 w-full">
-                  <div className={albumNameClass} title={album.title}>
-                    {album.title}
-                  </div>
-                </CardContent>
-              </Card>
+              <Link key={album.id} to={`/browse/album/${album.id}`}>
+                <Card className={albumCardClass}>
+                  <img
+                    src={album.coverArtUrl || placeholderImg}
+                    alt={album.title}
+                    className={albumImgClass}
+                    width={160}
+                    height={160}
+                    loading="lazy"
+                  />
+                  <CardContent className="flex-1 flex flex-col justify-end p-2 w-full">
+                    <div className={albumNameClass} title={album.title}>
+                      {album.title}
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
             ))}
           </div>
         ) : (

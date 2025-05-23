@@ -30,7 +30,18 @@ function getApiBaseUrl() {
   } catch (e) {
     // Intentionally ignore errors when trying to access import.meta.env
   }
-  return process.env['VITE_API_URL'] || 'http://localhost:3333';
+
+  // Fallback: check if we're in Node.js environment before accessing process
+  if (
+    typeof process !== 'undefined' &&
+    process.env &&
+    process.env['VITE_API_URL']
+  ) {
+    return process.env['VITE_API_URL'];
+  }
+
+  // Default fallback for browser environment
+  return 'http://localhost:3333';
 }
 
 const apiBaseUrl = getApiBaseUrl();
