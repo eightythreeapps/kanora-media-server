@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import Card from './Card';
+import { Card } from './Card';
 import styles from './MediaCard.module.css';
 import { Media, MediaType } from '@kanora/shared-types';
 
@@ -11,7 +11,7 @@ export interface MediaCardProps {
 
 export function MediaCard({ media, onClick, className = '' }: MediaCardProps) {
   const [imageError, setImageError] = useState(false);
-  
+
   const handleClick = () => {
     if (onClick) {
       onClick(media);
@@ -36,7 +36,7 @@ export function MediaCard({ media, onClick, className = '' }: MediaCardProps) {
   const formatDuration = (duration: number) => {
     const hours = Math.floor(duration / 3600);
     const minutes = Math.floor((duration % 3600) / 60);
-    
+
     if (hours > 0) {
       return `${hours}h ${minutes}m`;
     }
@@ -44,14 +44,14 @@ export function MediaCard({ media, onClick, className = '' }: MediaCardProps) {
   };
 
   return (
-    <Card 
+    <Card
       className={`${styles.mediaCard} ${className}`}
       hoverable
       onClick={handleClick}
     >
       <div className={styles.thumbnailContainer}>
         {!imageError && media.thumbnailPath ? (
-          <img 
+          <img
             src={media.thumbnailPath}
             alt={media.title}
             className={styles.thumbnail}
@@ -68,12 +68,12 @@ export function MediaCard({ media, onClick, className = '' }: MediaCardProps) {
         <div className={styles.mediaMetadata}>
           <span className={styles.mediaType}>{media.type}</span>
           {media.duration && (
-            <span className={styles.mediaDuration}>{formatDuration(media.duration)}</span>
+            <span className={styles.mediaDuration}>
+              {formatDuration(media.duration)}
+            </span>
           )}
         </div>
       </div>
     </Card>
   );
 }
-
-export default MediaCard; 

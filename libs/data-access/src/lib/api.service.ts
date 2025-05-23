@@ -17,9 +17,27 @@ import {
   AlbumDetails,
 } from '@kanora/shared-types';
 
+function getApiBaseUrl() {
+  try {
+    // Use Function constructor to avoid static parsing of import.meta
+    // eslint-disable-next-line no-new-func
+    const env = new Function(
+      'try { return import.meta.env } catch { return undefined }',
+    )();
+    if (env && env['VITE_API_URL']) {
+      return env['VITE_API_URL'];
+    }
+  } catch (e) {
+    // Intentionally ignore errors when trying to access import.meta.env
+  }
+  return process.env['VITE_API_URL'] || 'http://localhost:3333';
+}
+
+const apiBaseUrl = getApiBaseUrl();
+
 // Create axios instance with base configuration
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3333',
+  baseURL: apiBaseUrl,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -219,7 +237,7 @@ export class ApiService {
     try {
       // Create a custom axios instance for this request to handle file uploads with progress
       const response = await axios.post<ApiResponse<{ fileId: string }>>(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:3333'}/api/library/upload`,
+        `${apiBaseUrl}/api/library/upload`,
         formData,
         {
           headers: {

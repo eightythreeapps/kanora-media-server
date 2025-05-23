@@ -1,11 +1,25 @@
+'use client';
+
 import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, SubmitHandler } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '@/app/contexts/AuthContext';
+
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface LoginFormData {
   username: string;
-  pin?: string;
+  pin: string;
 }
 
 export const LoginForm: React.FC = () => {
@@ -20,127 +34,86 @@ export const LoginForm: React.FC = () => {
     formState: { errors },
   } = useForm<LoginFormData>();
 
-  const onSubmit = async (data: LoginFormData) => {
+  const onSubmit: SubmitHandler<LoginFormData> = async (data) => {
     setIsSubmitting(true);
     setError(null);
-
     try {
-      const success = await login(data.username, data.pin || undefined);
+      const success = await login(data.username, data.pin);
       if (success) {
         navigate('/dashboard');
       } else {
-        setError(
-          "Hmm, those credentials don't match our records. Give it another try?",
-        );
+        setError('Invalid username or PIN. Please try again.');
       }
     } catch (err) {
-      setError('Oops! Something went wrong on our end. Try again in a moment.');
-      console.error(err);
+      console.error('Login error:', err);
+      setError('An unexpected error occurred. Please try again later.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow-lg">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold text-gray-900">Welcome Back</h1>
-        <p className="mt-2 text-sm text-gray-600">
-          Your music collection is ready for you
-        </p>
-      </div>
-
-      {error && (
-        <div
-          className="p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg"
-          role="alert"
-        >
-          {error}
-        </div>
-      )}
-
-      <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
-        <div>
-          <label
-            htmlFor="username"
-            className="block text-sm font-medium text-gray-700"
+    <Card className="w-full">
+      <CardHeader className="space-y-1 text-center">
+        <CardTitle className="text-2xl">Sign In</CardTitle>
+        <CardDescription>
+          Enter your username and PIN to access your Kanora account.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-4">
+        {error && (
+          <div
+            className="p-3 mb-4 text-sm text-destructive bg-destructive/10 rounded-md"
+            role="alert"
           >
-            Username
-          </label>
-          <div className="mt-1">
-            <input
+            {error}
+          </div>
+        )}
+        <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
+          <div className="grid gap-2">
+            <Label htmlFor="username">Username</Label>
+            <Input
               id="username"
               type="text"
+              placeholder="Your username"
               autoComplete="username"
-              placeholder="Enter your username"
-              className={`w-full px-3 py-2 border ${
-                errors.username ? 'border-red-500' : 'border-gray-300'
-              } rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500`}
               {...register('username', {
                 required: 'Username is required',
               })}
+              aria-invalid={errors.username ? 'true' : 'false'}
             />
             {errors.username && (
-              <p className="mt-1 text-sm text-red-600">
+              <p className="text-sm text-destructive" role="alert">
                 {errors.username.message}
               </p>
             )}
           </div>
-        </div>
-
-        <div>
-          <label
-            htmlFor="pin"
-            className="block text-sm font-medium text-gray-700"
-          >
-            PIN (if required)
-          </label>
-          <div className="mt-1">
-            <input
+          <div className="grid gap-2">
+            <Label htmlFor="pin">PIN</Label>
+            <Input
               id="pin"
               type="password"
-              autoComplete="current-password"
               placeholder="Your PIN"
-              className={`w-full px-3 py-2 border ${
-                errors.pin ? 'border-red-500' : 'border-gray-300'
-              } rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500`}
-              {...register('pin')}
+              {...register('pin', {
+                required: 'PIN is required',
+                minLength: {
+                  value: 4,
+                  message: 'PIN must be at least 4 digits',
+                },
+              })}
+              aria-invalid={errors.pin ? 'true' : 'false'}
             />
             {errors.pin && (
-              <p className="mt-1 text-sm text-red-600">{errors.pin.message}</p>
+              <p className="text-sm text-destructive" role="alert">
+                {errors.pin.message}
+              </p>
             )}
           </div>
-        </div>
-
-        <div className="flex items-center">
-          <input
-            id="remember-me"
-            name="remember-me"
-            type="checkbox"
-            className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
-          />
-          <label
-            htmlFor="remember-me"
-            className="block ml-2 text-sm text-gray-900"
-          >
-            Remember me
-          </label>
-        </div>
-
-        <div>
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full px-4 py-2 text-sm font-medium text-white bg-primary-600 border border-transparent rounded-md shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
+          <Button type="submit" className="w-full" disabled={isSubmitting}>
             {isSubmitting ? 'Signing In...' : 'Sign In'}
-          </button>
-        </div>
-      </form>
-
-      <div className="text-xs text-center text-gray-600">
-        Kanora - Your personal music collection
-      </div>
-    </div>
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
   );
 };

@@ -16,13 +16,17 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { ProfilePage } from './components/user/ProfilePage';
 import { UserList } from './components/user/UserList';
 import { UserForm } from './components/user/UserForm';
-import { LibraryPage } from './components/library/LibraryPage';
 import { MainLayout } from './components/layout/MainLayout';
 // Import new browse pages
 import ArtistListPage from './pages/browse/ArtistListPage';
-import ArtistDetailPage from './pages/browse/ArtistDetailPage';
+import ArtistDetailPage from './pages/artists/ArtistDetailPage';
 import AlbumDetailPage from './pages/browse/AlbumDetailPage';
 import { ThemeProvider } from '../components/ThemeProvider';
+import LoginPage from './pages/auth/LoginPage';
+// Import new manage pages
+import ManageImportPage from './pages/manage/ManageImportPage';
+import ManageScanPage from './pages/manage/ManageScanPage';
+import ArtistsPage from './pages/artists/ArtistsPage';
 
 const HomePage = () => {
   const [mediaItems, setMediaItems] = useState<Media[]>([]);
@@ -119,14 +123,7 @@ export function App() {
         <Routes>
           {/* Public routes - remain outside MainLayout */}
           <Route path="/" element={<Navigate to="/login" replace />} />
-          <Route
-            path="/login"
-            element={
-              <AuthLayout>
-                <LoginForm />
-              </AuthLayout>
-            }
-          />
+          <Route path="/login" element={<LoginPage />} />
           <Route
             path="/setup"
             element={
@@ -164,9 +161,12 @@ export function App() {
           <Route element={<ProtectedRoute />}>
             <Route element={<MainLayout />}>
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/artists" element={<ArtistsPage />} />
+              <Route path="/artists/:artistId" element={<ArtistDetailPage />} />
               <Route path="/profile" element={<ProfilePage />} />
-              <Route path="/library" element={<LibraryPage />} />
-
+              {/* Manage section routes */}
+              <Route path="/manage/import" element={<ManageImportPage />} />
+              <Route path="/manage/scan" element={<ManageScanPage />} />
               {/* Music Browsing Routes */}
               <Route
                 path="/browse"
@@ -181,7 +181,6 @@ export function App() {
                 path="/browse/album/:albumId"
                 element={<AlbumDetailPage />}
               />
-
               <Route path="/settings" element={<SettingsPage />} />
               {/* Admin User Management routes */}
               <Route path="/admin/users" element={<UserList />} />

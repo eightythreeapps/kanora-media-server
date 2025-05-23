@@ -19,7 +19,7 @@ export function Card({
   hoverable = false,
 }: CardProps) {
   const cardClass = `${styles.card} ${hoverable ? styles.hoverable : ''} ${className}`;
-  
+
   return (
     <div className={cardClass} onClick={onClick}>
       {title && <div className={styles.cardHeader}>{title}</div>}
@@ -28,5 +28,3 @@ export function Card({
     </div>
   );
 }
-
-export default Card; 

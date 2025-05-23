@@ -1,228 +1,52 @@
-import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import React from 'react';
 
 export const Dashboard: React.FC = () => {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-
-  const handleLogout = async () => {
-    await logout();
-  };
-
-  const handleNavigateToUpload = () => {
-    navigate('/library?tab=upload');
-  };
-
   return (
     <div className="container px-4 py-8 mx-auto">
-      <div className="flex flex-col items-center justify-center">
-        <div className="w-full max-w-4xl p-8 space-y-8 bg-white rounded-lg shadow-lg">
-          <div className="text-center">
-            <h1 className="text-4xl font-bold text-gray-900">
-              Welcome to Kanora
-            </h1>
-            <p className="mt-2 text-lg text-gray-600">
-              Hello, {user?.displayName || 'User'}!
-            </p>
+      <div className="w-full max-w-6xl mx-auto space-y-8">
+        <h1 className="text-3xl font-bold text-foreground mb-4">Dashboard</h1>
+        {/* Library Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="rounded-lg bg-card p-6 shadow-sm border">
+            <div className="text-sm text-muted-foreground">Total Albums</div>
+            <div className="text-2xl font-bold mt-2">--</div>
           </div>
+          <div className="rounded-lg bg-card p-6 shadow-sm border">
+            <div className="text-sm text-muted-foreground">Total Tracks</div>
+            <div className="text-2xl font-bold mt-2">--</div>
+          </div>
+          <div className="rounded-lg bg-card p-6 shadow-sm border">
+            <div className="text-sm text-muted-foreground">Total Artists</div>
+            <div className="text-2xl font-bold mt-2">--</div>
+          </div>
+        </div>
 
-          <div className="p-6 mt-6 bg-gray-50 rounded-lg">
-            <h2 className="text-2xl font-semibold text-gray-800">
-              Your Account Information
-            </h2>
-            <div className="mt-4 space-y-2">
-              <div className="flex">
-                <span className="w-32 font-medium text-gray-600">Email:</span>
-                <span className="text-gray-800">{user?.email}</span>
-              </div>
-              <div className="flex">
-                <span className="w-32 font-medium text-gray-600">
-                  Display Name:
-                </span>
-                <span className="text-gray-800">{user?.displayName}</span>
-              </div>
-              <div className="flex">
-                <span className="w-32 font-medium text-gray-600">Role:</span>
-                <span className="text-gray-800">{user?.role}</span>
-              </div>
-              <div className="flex">
-                <span className="w-32 font-medium text-gray-600">Joined:</span>
-                <span className="text-gray-800">
-                  {user?.createdAt
-                    ? new Date(user.createdAt).toLocaleDateString()
-                    : 'N/A'}
-                </span>
-              </div>
+        {/* Last Imported Albums */}
+        <div>
+          <h2 className="text-xl font-semibold mb-2">Last Imported Albums</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {/* TODO: Map over last imported albums */}
+            <div className="rounded-lg bg-muted p-4 h-32 flex items-center justify-center text-muted-foreground">
+              No data
             </div>
-            <div className="mt-4">
-              <Link
-                to="/profile"
-                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="w-4 h-4 mr-2"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                  />
-                </svg>
-                Manage Profile
-              </Link>
+            <div className="rounded-lg bg-muted p-4 h-32 flex items-center justify-center text-muted-foreground">
+              No data
+            </div>
+            <div className="rounded-lg bg-muted p-4 h-32 flex items-center justify-center text-muted-foreground">
+              No data
+            </div>
+            <div className="rounded-lg bg-muted p-4 h-32 flex items-center justify-center text-muted-foreground">
+              No data
             </div>
           </div>
+        </div>
 
-          <div className="p-6 mt-6 bg-gray-50 rounded-lg">
-            <h2 className="text-2xl font-semibold text-gray-800">
-              Quick Actions
-            </h2>
-            <div className="grid grid-cols-1 gap-4 mt-4 md:grid-cols-2 lg:grid-cols-3">
-              <Link
-                to="/browse"
-                className="flex flex-col items-center justify-center p-4 transition-colors bg-white border rounded-lg shadow-sm hover:bg-primary-50"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="w-8 h-8 text-primary-600"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"
-                  />
-                </svg>
-                <span className="mt-2 font-medium text-gray-800">
-                  Browse Music
-                </span>
-              </Link>
-
-              <Link
-                to="/library"
-                className="flex flex-col items-center justify-center p-4 transition-colors bg-white border rounded-lg shadow-sm hover:bg-primary-50"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="w-8 h-8 text-primary-600"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                  />
-                </svg>
-                <span className="mt-2 font-medium text-gray-800">
-                  Manage Library
-                </span>
-              </Link>
-
-              <Link
-                to="/library?tab=upload"
-                className="flex flex-col items-center justify-center p-4 transition-colors bg-white border rounded-lg shadow-sm hover:bg-primary-50"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="w-8 h-8 text-primary-600"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                  />
-                </svg>
-                <span className="mt-2 font-medium text-gray-800">
-                  Upload Music
-                </span>
-              </Link>
-
-              <Link
-                to="/settings"
-                className="flex flex-col items-center justify-center p-4 transition-colors bg-white border rounded-lg shadow-sm hover:bg-primary-50"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="w-8 h-8 text-primary-600"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
-                </svg>
-                <span className="mt-2 font-medium text-gray-800">Settings</span>
-              </Link>
-            </div>
-          </div>
-
-          {/* Admin-only section */}
-          {user?.role === 'admin' && (
-            <div className="p-6 mt-6 bg-purple-50 rounded-lg border border-purple-200">
-              <h2 className="text-2xl font-semibold text-purple-800">
-                Admin Controls
-              </h2>
-              <p className="mt-2 text-purple-600">
-                These controls are only available to admin users.
-              </p>
-              <div className="mt-4 space-y-2">
-                <Link
-                  to="/admin/users"
-                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="w-4 h-4 mr-2"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
-                    />
-                  </svg>
-                  Manage Users
-                </Link>
-              </div>
-            </div>
-          )}
-
-          <div className="flex justify-center mt-8">
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-            >
-              Sign Out
-            </button>
+        {/* Recently Played Tracks */}
+        <div>
+          <h2 className="text-xl font-semibold mb-2">Recently Played Tracks</h2>
+          <div className="rounded-lg bg-card p-4 border">
+            {/* TODO: Map over recently played tracks */}
+            <div className="text-muted-foreground">No data</div>
           </div>
         </div>
       </div>
