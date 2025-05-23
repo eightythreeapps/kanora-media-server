@@ -7,7 +7,14 @@
       "@nx/react/typings/cssmodule.d.ts",
       "@nx/react/typings/image.d.ts",
       "vite/client"
-    ]
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@kanora/data-access": ["../../libs/data-access/src/index.ts"],
+      "@kanora/shared-types": ["../../libs/shared-types/src/index.ts"],
+      "@kanora/ui": ["../../libs/ui/src/index.ts"]
+    }
   },
   "exclude": [
     "src/**/*.spec.ts",

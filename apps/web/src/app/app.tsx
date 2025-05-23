@@ -16,12 +16,17 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { ProfilePage } from './components/user/ProfilePage';
 import { UserList } from './components/user/UserList';
 import { UserForm } from './components/user/UserForm';
-import { LibraryPage } from './components/library/LibraryPage';
 import { MainLayout } from './components/layout/MainLayout';
 // Import new browse pages
 import ArtistListPage from './pages/browse/ArtistListPage';
-import ArtistDetailPage from './pages/browse/ArtistDetailPage';
+import ArtistDetailPage from './pages/artists/ArtistDetailPage';
 import AlbumDetailPage from './pages/browse/AlbumDetailPage';
+import { ThemeProvider } from '../components/ThemeProvider';
+import LoginPage from './pages/auth/LoginPage';
+// Import new manage pages
+import ManageImportPage from './pages/manage/ManageImportPage';
+import ManageScanPage from './pages/manage/ManageScanPage';
+import ArtistsPage from './pages/artists/ArtistsPage';
 
 const HomePage = () => {
   const [mediaItems, setMediaItems] = useState<Media[]>([]);
@@ -113,84 +118,81 @@ const SettingsPage = () => (
 
 export function App() {
   return (
-    <AuthProvider>
-      <Routes>
-        {/* Public routes - remain outside MainLayout */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
-        <Route
-          path="/login"
-          element={
-            <AuthLayout>
-              <LoginForm />
-            </AuthLayout>
-          }
-        />
-        <Route
-          path="/setup"
-          element={
-            <AuthLayout>
-              <SetupForm />
-            </AuthLayout>
-          }
-        />
-        <Route
-          path="/register"
-          element={
-            <AuthLayout>
-              <UserAccessDenied />
-            </AuthLayout>
-          }
-        />
-        <Route
-          path="/forgot-password"
-          element={
-            <AuthLayout>
-              <UserAccessDenied />
-            </AuthLayout>
-          }
-        />
-        <Route
-          path="/reset-password/:token"
-          element={
-            <AuthLayout>
-              <UserAccessDenied />
-            </AuthLayout>
-          }
-        />
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <AuthProvider>
+        <Routes>
+          {/* Public routes - remain outside MainLayout */}
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route
+            path="/setup"
+            element={
+              <AuthLayout>
+                <SetupForm />
+              </AuthLayout>
+            }
+          />
+          <Route
+            path="/register"
+            element={
+              <AuthLayout>
+                <UserAccessDenied />
+              </AuthLayout>
+            }
+          />
+          <Route
+            path="/forgot-password"
+            element={
+              <AuthLayout>
+                <UserAccessDenied />
+              </AuthLayout>
+            }
+          />
+          <Route
+            path="/reset-password/:token"
+            element={
+              <AuthLayout>
+                <UserAccessDenied />
+              </AuthLayout>
+            }
+          />
 
-        {/* Protected routes - now wrapped by MainLayout */}
-        <Route element={<ProtectedRoute />}>
-          <Route element={<MainLayout />}>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/library" element={<LibraryPage />} />
-
-            {/* Music Browsing Routes */}
-            <Route
-              path="/browse"
-              element={<Navigate to="/browse/artists" replace />}
-            />
-            <Route path="/browse/artists" element={<ArtistListPage />} />
-            <Route
-              path="/browse/artist/:artistId"
-              element={<ArtistDetailPage />}
-            />
-            <Route
-              path="/browse/album/:albumId"
-              element={<AlbumDetailPage />}
-            />
-
-            <Route path="/settings" element={<SettingsPage />} />
-            {/* Admin User Management routes */}
-            <Route path="/admin/users" element={<UserList />} />
-            <Route path="/admin/users/:id" element={<UserForm />} />
+          {/* Protected routes - now wrapped by MainLayout */}
+          <Route element={<ProtectedRoute />}>
+            <Route element={<MainLayout />}>
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/artists" element={<ArtistsPage />} />
+              <Route path="/artists/:artistId" element={<ArtistDetailPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              {/* Manage section routes */}
+              <Route path="/manage/import" element={<ManageImportPage />} />
+              <Route path="/manage/scan" element={<ManageScanPage />} />
+              {/* Music Browsing Routes */}
+              <Route
+                path="/browse"
+                element={<Navigate to="/browse/artists" replace />}
+              />
+              <Route path="/browse/artists" element={<ArtistListPage />} />
+              <Route
+                path="/browse/artist/:artistId"
+                element={<ArtistDetailPage />}
+              />
+              <Route
+                path="/browse/album/:albumId"
+                element={<AlbumDetailPage />}
+              />
+              <Route path="/settings" element={<SettingsPage />} />
+              {/* Admin User Management routes */}
+              <Route path="/admin/users" element={<UserList />} />
+              <Route path="/admin/users/:id" element={<UserForm />} />
+            </Route>
           </Route>
-        </Route>
 
-        {/* Catch all - redirect to login */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
-    </AuthProvider>
+          {/* Catch all - redirect to login */}
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

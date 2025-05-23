@@ -1,10 +1,10 @@
-export default {
-  displayName: 'data-access',
+module.exports = {
+  displayName: 'shared-types',
   preset: '../../jest.preset.js',
   testEnvironment: 'node',
   transform: {
     '^.+\\.[tj]s$': ['ts-jest', { tsconfig: '<rootDir>/tsconfig.spec.json' }],
   },
   moduleFileExtensions: ['ts', 'js', 'html'],
-  coverageDirectory: '../../coverage/libs/data-access',
+  coverageDirectory: '../../coverage/libs/shared-types',
 };
