@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ApiService } from '@kanora/data-access';
 import { AlbumDetails, Track } from '@kanora/shared-types';
-import { Button, Card } from '@kanora/ui';
+import { Button } from '../../../components/ui/button';
+import { Card, CardContent, CardHeader } from '../../../components/ui/card';
 import { Play, Shuffle, ArrowLeft, Clock } from 'lucide-react';
 
 // Track Row Component
@@ -238,8 +239,8 @@ const AlbumDetailPage: React.FC = () => {
           <div className="flex gap-4">
             <Button
               onClick={handlePlayAlbum}
-              variant="primary"
-              size="large"
+              variant="default"
+              size="lg"
               className="flex items-center gap-2"
             >
               <Play className="w-5 h-5" />
@@ -248,7 +249,7 @@ const AlbumDetailPage: React.FC = () => {
             <Button
               onClick={handleShuffleAlbum}
               variant="outline"
-              size="large"
+              size="lg"
               className="flex items-center gap-2"
             >
               <Shuffle className="w-5 h-5" />
