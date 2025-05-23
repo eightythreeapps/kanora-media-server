@@ -22,6 +22,7 @@ import { MainLayout } from './components/layout/MainLayout';
 import ArtistListPage from './pages/browse/ArtistListPage';
 import ArtistDetailPage from './pages/browse/ArtistDetailPage';
 import AlbumDetailPage from './pages/browse/AlbumDetailPage';
+import { ThemeProvider } from '../components/ThemeProvider';
 
 const HomePage = () => {
   const [mediaItems, setMediaItems] = useState<Media[]>([]);
@@ -113,84 +114,86 @@ const SettingsPage = () => (
 
 export function App() {
   return (
-    <AuthProvider>
-      <Routes>
-        {/* Public routes - remain outside MainLayout */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
-        <Route
-          path="/login"
-          element={
-            <AuthLayout>
-              <LoginForm />
-            </AuthLayout>
-          }
-        />
-        <Route
-          path="/setup"
-          element={
-            <AuthLayout>
-              <SetupForm />
-            </AuthLayout>
-          }
-        />
-        <Route
-          path="/register"
-          element={
-            <AuthLayout>
-              <UserAccessDenied />
-            </AuthLayout>
-          }
-        />
-        <Route
-          path="/forgot-password"
-          element={
-            <AuthLayout>
-              <UserAccessDenied />
-            </AuthLayout>
-          }
-        />
-        <Route
-          path="/reset-password/:token"
-          element={
-            <AuthLayout>
-              <UserAccessDenied />
-            </AuthLayout>
-          }
-        />
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <AuthProvider>
+        <Routes>
+          {/* Public routes - remain outside MainLayout */}
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route
+            path="/login"
+            element={
+              <AuthLayout>
+                <LoginForm />
+              </AuthLayout>
+            }
+          />
+          <Route
+            path="/setup"
+            element={
+              <AuthLayout>
+                <SetupForm />
+              </AuthLayout>
+            }
+          />
+          <Route
+            path="/register"
+            element={
+              <AuthLayout>
+                <UserAccessDenied />
+              </AuthLayout>
+            }
+          />
+          <Route
+            path="/forgot-password"
+            element={
+              <AuthLayout>
+                <UserAccessDenied />
+              </AuthLayout>
+            }
+          />
+          <Route
+            path="/reset-password/:token"
+            element={
+              <AuthLayout>
+                <UserAccessDenied />
+              </AuthLayout>
+            }
+          />
 
-        {/* Protected routes - now wrapped by MainLayout */}
-        <Route element={<ProtectedRoute />}>
-          <Route element={<MainLayout />}>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/library" element={<LibraryPage />} />
+          {/* Protected routes - now wrapped by MainLayout */}
+          <Route element={<ProtectedRoute />}>
+            <Route element={<MainLayout />}>
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/library" element={<LibraryPage />} />
 
-            {/* Music Browsing Routes */}
-            <Route
-              path="/browse"
-              element={<Navigate to="/browse/artists" replace />}
-            />
-            <Route path="/browse/artists" element={<ArtistListPage />} />
-            <Route
-              path="/browse/artist/:artistId"
-              element={<ArtistDetailPage />}
-            />
-            <Route
-              path="/browse/album/:albumId"
-              element={<AlbumDetailPage />}
-            />
+              {/* Music Browsing Routes */}
+              <Route
+                path="/browse"
+                element={<Navigate to="/browse/artists" replace />}
+              />
+              <Route path="/browse/artists" element={<ArtistListPage />} />
+              <Route
+                path="/browse/artist/:artistId"
+                element={<ArtistDetailPage />}
+              />
+              <Route
+                path="/browse/album/:albumId"
+                element={<AlbumDetailPage />}
+              />
 
-            <Route path="/settings" element={<SettingsPage />} />
-            {/* Admin User Management routes */}
-            <Route path="/admin/users" element={<UserList />} />
-            <Route path="/admin/users/:id" element={<UserForm />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              {/* Admin User Management routes */}
+              <Route path="/admin/users" element={<UserList />} />
+              <Route path="/admin/users/:id" element={<UserForm />} />
+            </Route>
           </Route>
-        </Route>
 
-        {/* Catch all - redirect to login */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
-    </AuthProvider>
+          {/* Catch all - redirect to login */}
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

@@ -1,4 +1,4 @@
-export default {
+module.exports = {
   displayName: 'data-access',
   preset: '../../jest.preset.js',
   testEnvironment: 'node',
@@ -7,4 +7,4 @@ export default {
   },
   moduleFileExtensions: ['ts', 'js', 'html'],
   coverageDirectory: '../../coverage/libs/data-access',
-};
+}; 
